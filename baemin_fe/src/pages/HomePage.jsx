@@ -6,7 +6,7 @@ import RestaurantCard from "../components/RestaurantCard";
 import SearchBar from "../components/SearchBar";
 import { restaurants } from "../data/mockData";
 
-const HomePage = () => {
+const HomePage = ({ onSelectRestaurant }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [likedRestaurants, setLikedRestaurants] = useState(new Set([1, 3]));
 
@@ -52,12 +52,13 @@ const HomePage = () => {
       </div>
 
       {filtered.map((r) => (
-        <RestaurantCard
-          key={r.id}
-          restaurant={r}
-          liked={likedRestaurants.has(r.id)}
-          onToggleLike={toggleLike}
-        />
+        <div key={r.id} onClick={() => onSelectRestaurant(r)} style={{ cursor: "pointer" }}>
+          <RestaurantCard
+            restaurant={r}
+            liked={likedRestaurants.has(r.id)}
+            onToggleLike={toggleLike}
+          />
+        </div>
       ))}
     </div>
   );

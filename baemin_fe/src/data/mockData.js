@@ -68,10 +68,10 @@ export const initialCartItems = [
 ];
 
 export const navTabs = [
-  { id: "home", icon: "🏠", label: "홈" },
-  { id: "order", icon: "📋", label: "주문내역" },
-  { id: "coupon", icon: "🎟️", label: "쿠폰" },
-  { id: "my", icon: "👤", label: "MY배민" },
+  { id: "home",    icon: "🏠",  label: "홈" },
+  { id: "fav",     icon: "❤️",  label: "찜" },
+  { id: "order",   icon: "📋",  label: "주문내역" },
+  { id: "my",      icon: "👤",  label: "마이배민" },
 ];
 
 export const filters = ["전체", "최소주문금액순", "배달빠른순", "별점높은순", "리뷰많은순", "가까운순"];
