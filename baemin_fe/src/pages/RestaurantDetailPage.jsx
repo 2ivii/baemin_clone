@@ -1,5 +1,6 @@
 import { useState } from "react";
 import MenuDetailModal from "../components/MenuDetailModal";
+import ReviewPage from "./ReviewPage";
 
 const menuCategories = ["인기 메뉴", "우아한 분식", "바삭 튀김류", "분식 세트"];
 
@@ -93,6 +94,17 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
   const [selectedMenu, setSelectedMenu] = useState(null);
   const [activeCategory, setActiveCategory] = useState("인기 메뉴");
   const [liked, setLiked] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
+
+  // ReviewPage로 이동
+  if (showReviews) {
+    return (
+        <ReviewPage
+            restaurant={restaurant}
+            onBack={() => setShowReviews(false)}
+        />
+    );
+  }
 
   const s = {
     page: { background: "#fff", minHeight: "100vh", paddingBottom: 80 },
@@ -184,7 +196,7 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
       justifyContent: "space-between",
       marginBottom: 14,
     },
-    ratingLeft: { display: "flex", alignItems: "center", gap: 4 },
+    ratingLeft: { display: "flex", alignItems: "center", gap: 4, cursor: "pointer" },
     star: { color: "#FFB800", fontSize: 16, fontWeight: 700 },
     ratingText: { fontSize: 15, fontWeight: 700, color: "#1A1A1A" },
     ratingArrow: { fontSize: 13, color: "#888" },
@@ -233,6 +245,7 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
       padding: "0 16px 14px",
       scrollbarWidth: "none",
     },
+    // 리뷰 카드: 클릭 가능하도록 cursor 추가
     reviewCard: {
       flexShrink: 0,
       width: 280,
@@ -241,6 +254,8 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
       background: "#F8F8F8",
       borderRadius: 12,
       padding: 12,
+      cursor: "pointer",
+      transition: "background 0.15s",
     },
     reviewImg: {
       width: 56,
@@ -370,145 +385,150 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
   };
 
   return (
-    <div style={s.page}>
-      {/* Hero Image Area */}
-      <div style={s.heroArea}>
-        <span>{restaurant.img}</span>
-        <div style={s.heroOverlay} />
-        <div style={s.topBar}>
-          <button style={s.iconBtn} onClick={onBack}>←</button>
-          <div style={s.topRight}>
-            <button style={s.iconBtn}>⬆</button>
-            <button style={s.iconBtn}>🔍</button>
-            <button style={s.iconBtn}>🛒</button>
+      <div style={s.page}>
+        {/* Hero Image Area */}
+        <div style={s.heroArea}>
+          <span>{restaurant.img}</span>
+          <div style={s.heroOverlay} />
+          <div style={s.topBar}>
+            <button style={s.iconBtn} onClick={onBack}>←</button>
+            <div style={s.topRight}>
+              <button style={s.iconBtn}>⬆</button>
+              <button style={s.iconBtn}>🔍</button>
+              <button style={s.iconBtn}>🛒</button>
+            </div>
           </div>
-        </div>
-        <button style={s.togetherBtn}>
-          <span>👥</span> 함께주문
-        </button>
-      </div>
-
-      {/* Store Info */}
-      <div style={s.infoSection}>
-        <div style={s.clubBadge}>
-          <span>🏆</span> 배민클럽 배달팁 무료
-        </div>
-        <div style={s.nameRow}>
-          <div style={s.storeName}>{restaurant.name}</div>
-          <button style={s.likeBtn} onClick={() => setLiked(!liked)}>
-            {liked ? "❤️" : "🤍"}
+          <button style={s.togetherBtn}>
+            <span>👥</span> 함께주문
           </button>
         </div>
-        <div style={s.ratingRow}>
-          <div style={s.ratingLeft}>
-            <span style={s.star}>★</span>
-            <span style={s.ratingText}>{restaurant.rating}(67)</span>
-            <span style={s.ratingArrow}> ›</span>
+
+        {/* Store Info */}
+        <div style={s.infoSection}>
+          <div style={s.clubBadge}>
+            <span>🏆</span> 배민클럽 배달팁 무료
           </div>
-          <span style={s.storeInfoLink}>가게정보·원산지</span>
-        </div>
-
-        {/* Delivery Info Box */}
-        <div style={s.deliveryBox}>
-          <div style={s.deliveryRow}>
-            <span style={s.deliveryLabel}>최소주문</span>
-            <span style={s.deliveryValue}>{restaurant.minOrder}</span>
-            <span style={{ marginLeft: "auto", fontSize: 12, color: "#29D3C4", fontWeight: 700 }}>배달 안내</span>
-          </div>
-          <div style={{ ...s.deliveryRow, marginBottom: 0 }}>
-            <span style={s.deliveryLabel}>알뜰배달 🛵</span>
-            <div style={s.deliveryTime}>
-              <span style={s.deliveryValue}>36~51분</span>
-              <span style={s.fastText}>가장 저렴해요</span>
-            </div>
-            <button style={s.chevronBtn}>⌄</button>
-          </div>
-          <div style={{ paddingLeft: 70, marginTop: 4 }}>
-            <div style={s.freeDelivery}>
-              <span>🏆</span>
-              <span>배달팁 무료</span>
-              <span style={s.strikethrough}>4,100원</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Reviews Scroll */}
-      <div style={s.reviewScroll}>
-        {reviews.map((r) => (
-          <div key={r.id} style={s.reviewCard}>
-            <div style={{ ...s.reviewImg, background: r.bg }}>{r.emoji}</div>
-            <div>
-              <div style={s.reviewStars}>{"★".repeat(r.rating)}</div>
-              <div style={s.reviewText}>{r.text}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Owner Notice */}
-      <div style={s.ownerNotice}>
-        <span>📢</span>
-        <span>저희 우아한분식의 떡볶이는 추억의 학교 앞 분식집 정...</span>
-      </div>
-
-      <div style={s.divider} />
-
-      {/* Category Tabs */}
-      <div style={s.categoryTabs}>
-        <button style={s.searchTabBtn}>🔍</button>
-        {menuCategories.map((cat) => (
-          <button
-            key={cat}
-            style={s.catTab(activeCategory === cat)}
-            onClick={() => setActiveCategory(cat)}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Menu List */}
-      <div style={s.menuSectionTitle}>가장 인기 있는 메뉴</div>
-      <div style={s.menuSectionSub}>한 달간 주문수가 많고 만족도가 높은 메뉴예요.</div>
-
-      {menuItems.map((item) => (
-        <div key={item.id} style={s.menuItem} onClick={() => setSelectedMenu(item)}>
-          <div style={s.menuInfo}>
-            <div style={s.menuTags}>
-              <span style={s.menuTag("#888")}>{item.rank}</span>
-              {item.ownerPick && <span style={s.menuTag("#29D3C4")}>사장님 추천</span>}
-            </div>
-            <div style={s.menuName}>{item.name}</div>
-            <div style={s.menuDesc}>{item.desc}</div>
-            <div style={s.menuPrice}>{item.price.toLocaleString()}원</div>
-            <div style={s.menuReviews}>리뷰 {item.reviews}</div>
-          </div>
-          <div style={s.menuImgWrap}>
-            <div style={s.menuImg(item.bg)}>{item.emoji}</div>
-            <button
-              style={s.addBtn}
-              onClick={(e) => { e.stopPropagation(); setSelectedMenu(item); }}
-            >
-              +
+          <div style={s.nameRow}>
+            <div style={s.storeName}>{restaurant.name}</div>
+            <button style={s.likeBtn} onClick={() => setLiked(!liked)}>
+              {liked ? "❤️" : "🤍"}
             </button>
           </div>
-        </div>
-      ))}
+          {/* 별점 클릭 시 리뷰 페이지로 이동 */}
+          <div style={s.ratingRow}>
+            <div style={s.ratingLeft} onClick={() => setShowReviews(true)}>
+              <span style={s.star}>★</span>
+              <span style={s.ratingText}>{restaurant.rating}(67)</span>
+              <span style={s.ratingArrow}> ›</span>
+            </div>
+            <span style={s.storeInfoLink}>가게정보·원산지</span>
+          </div>
 
-      {/* Menu Detail Modal */}
-      {selectedMenu && (
-        <MenuDetailModal
-          menu={selectedMenu}
-          restaurant={restaurant}
-          onClose={() => setSelectedMenu(null)}
-          onAddToCart={(item, qty) => {
-            onAddToCart(item, qty);
-            setSelectedMenu(null);
-          }}
-        />
-      )}
-    </div>
+          {/* Delivery Info Box */}
+          <div style={s.deliveryBox}>
+            <div style={s.deliveryRow}>
+              <span style={s.deliveryLabel}>최소주문</span>
+              <span style={s.deliveryValue}>{restaurant.minOrder}</span>
+              <span style={{ marginLeft: "auto", fontSize: 12, color: "#29D3C4", fontWeight: 700 }}>배달 안내</span>
+            </div>
+            <div style={{ ...s.deliveryRow, marginBottom: 0 }}>
+              <span style={s.deliveryLabel}>알뜰배달 🛵</span>
+              <div style={s.deliveryTime}>
+                <span style={s.deliveryValue}>36~51분</span>
+                <span style={s.fastText}>가장 저렴해요</span>
+              </div>
+              <button style={s.chevronBtn}>⌄</button>
+            </div>
+            <div style={{ paddingLeft: 70, marginTop: 4 }}>
+              <div style={s.freeDelivery}>
+                <span>🏆</span>
+                <span>배달팁 무료</span>
+                <span style={s.strikethrough}>4,100원</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Reviews Scroll - 카드 클릭 시 리뷰 페이지로 이동 */}
+        <div style={s.reviewScroll}>
+          {reviews.map((r) => (
+              <div
+                  key={r.id}
+                  style={s.reviewCard}
+                  onClick={() => setShowReviews(true)}
+              >
+                <div style={{ ...s.reviewImg, background: r.bg }}>{r.emoji}</div>
+                <div>
+                  <div style={s.reviewStars}>{"★".repeat(r.rating)}</div>
+                  <div style={s.reviewText}>{r.text}</div>
+                </div>
+              </div>
+          ))}
+        </div>
+
+        {/* Owner Notice */}
+        <div style={s.ownerNotice}>
+          <span>📢</span>
+          <span>저희 우아한분식의 떡볶이는 추억의 학교 앞 분식집 정...</span>
+        </div>
+
+        <div style={s.divider} />
+
+        {/* Category Tabs */}
+        <div style={s.categoryTabs}>
+          <button style={s.searchTabBtn}>🔍</button>
+          {menuCategories.map((cat) => (
+              <button
+                  key={cat}
+                  style={s.catTab(activeCategory === cat)}
+                  onClick={() => setActiveCategory(cat)}
+              >
+                {cat}
+              </button>
+          ))}
+        </div>
+
+        {/* Menu List */}
+        <div style={s.menuSectionTitle}>가장 인기 있는 메뉴</div>
+        <div style={s.menuSectionSub}>한 달간 주문수가 많고 만족도가 높은 메뉴예요.</div>
+
+        {menuItems.map((item) => (
+            <div key={item.id} style={s.menuItem} onClick={() => setSelectedMenu(item)}>
+              <div style={s.menuInfo}>
+                <div style={s.menuTags}>
+                  <span style={s.menuTag("#888")}>{item.rank}</span>
+                  {item.ownerPick && <span style={s.menuTag("#29D3C4")}>사장님 추천</span>}
+                </div>
+                <div style={s.menuName}>{item.name}</div>
+                <div style={s.menuDesc}>{item.desc}</div>
+                <div style={s.menuPrice}>{item.price.toLocaleString()}원</div>
+                <div style={s.menuReviews}>리뷰 {item.reviews}</div>
+              </div>
+              <div style={s.menuImgWrap}>
+                <div style={s.menuImg(item.bg)}>{item.emoji}</div>
+                <button
+                    style={s.addBtn}
+                    onClick={(e) => { e.stopPropagation(); setSelectedMenu(item); }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+        ))}
+
+        {/* Menu Detail Modal */}
+        {selectedMenu && (
+            <MenuDetailModal
+                menu={selectedMenu}
+                restaurant={restaurant}
+                onClose={() => setSelectedMenu(null)}
+                onAddToCart={(item, qty) => {
+                  onAddToCart(item, qty);
+                  setSelectedMenu(null);
+                }}
+            />
+        )}
+      </div>
   );
 };
 

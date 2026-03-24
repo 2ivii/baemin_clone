@@ -38,7 +38,6 @@ const FavoritePage = ({ onSelectRestaurant }) => {
       cursor: "pointer",
       background: "none",
       border: "none",
-      borderBottom: active ? "2px solid #1A1A1A" : "2px solid transparent",
     }),
     count: {
       padding: "14px 16px 8px",
@@ -202,7 +201,7 @@ const FavoritePage = ({ onSelectRestaurant }) => {
       <div style={s.count}>총 {items.length}개</div>
 
       {items.map((item) => (
-        <div key={item.id} style={s.item} onClick={() => {}}>
+        <div key={item.id} style={s.item} onClick={() => onSelectRestaurant(item)}>
           <div style={s.imgWrap}>
             <div style={s.img(item.bg)}>
               {item.status ? (
