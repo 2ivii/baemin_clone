@@ -1,15 +1,11 @@
 const menuItems = [
   { icon: "🏠", label: "배달 주소 관리" },
-  { icon: "💳", label: "결제 수단 관리" },
   { icon: "⭐", label: "리뷰 관리" },
-  { icon: "❤️", label: "찜한 가게" },
   { icon: "🎟️", label: "쿠폰함" },
-  { icon: "🔔", label: "알림 설정" },
-  { icon: "🔒", label: "개인정보 설정" },
   { icon: "📞", label: "고객센터" },
 ];
 
-const MyPage = () => {
+const MyPage = ({ onCoupon, onReview, onAddress }) => {
   const styles = {
     container: { paddingBottom: 16 },
     profile: {
@@ -49,11 +45,7 @@ const MyPage = () => {
       boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
       marginBottom: 12,
     },
-    stat: {
-      flex: 1,
-      textAlign: "center",
-      borderRight: "1px solid #eee",
-    },
+    stat: { flex: 1, textAlign: "center" },
     statNum: { fontSize: 20, fontWeight: 900, color: "#29D3C4" },
     statLabel: { fontSize: 11, color: "#888", marginTop: 2 },
     section: {
@@ -86,42 +78,48 @@ const MyPage = () => {
     },
   };
 
+  const handleMenuClick = (label) => {
+    if (label === "쿠폰함") onCoupon?.();
+    else if (label === "리뷰 관리") onReview?.();
+    else if (label === "배달 주소 관리") onAddress?.();
+  };
+
   return (
-    <div style={styles.container}>
-      <div style={styles.profile}>
-        <div style={styles.avatar}>👤</div>
-        <div>
-          <div style={styles.name}>배민 사용자</div>
-          <div style={styles.email}>baemin@example.com</div>
+      <div style={styles.container}>
+        <div style={styles.profile}>
+          <div style={styles.avatar}>👤</div>
+          <div>
+            <div style={styles.name}>배민 사용자</div>
+            <div style={styles.email}>baemin@example.com</div>
+          </div>
+          <button style={styles.editBtn}>편집</button>
         </div>
-        <button style={styles.editBtn}>편집</button>
-      </div>
 
-      <div style={styles.statsRow}>
-        {[
-          { num: "12", label: "주문" },
-          { num: "3", label: "쿠폰" },
-          { num: "5", label: "찜한가게" },
-        ].map((s, i) => (
-          <div key={i} style={{ ...styles.stat, borderRight: i < 2 ? "1px solid #eee" : "none" }}>
-            <div style={styles.statNum}>{s.num}</div>
-            <div style={styles.statLabel}>{s.label}</div>
-          </div>
-        ))}
-      </div>
+        <div style={styles.statsRow}>
+          {[
+            { num: "12", label: "주문" },
+            { num: "3", label: "쿠폰" },
+            { num: "5", label: "찜한가게" },
+          ].map((s, i) => (
+              <div key={i} style={{ ...styles.stat, borderRight: i < 2 ? "1px solid #eee" : "none" }}>
+                <div style={styles.statNum}>{s.num}</div>
+                <div style={styles.statLabel}>{s.label}</div>
+              </div>
+          ))}
+        </div>
 
-      <div style={styles.section}>
-        {menuItems.map((item, i) => (
-          <div key={i} style={styles.menuItem}>
-            <span style={styles.menuIcon}>{item.icon}</span>
-            <span style={styles.menuLabel}>{item.label}</span>
-            <span style={styles.arrow}>›</span>
-          </div>
-        ))}
-      </div>
+        <div style={styles.section}>
+          {menuItems.map((item, i) => (
+              <div key={i} style={styles.menuItem} onClick={() => handleMenuClick(item.label)}>
+                <span style={styles.menuIcon}>{item.icon}</span>
+                <span style={styles.menuLabel}>{item.label}</span>
+                <span style={styles.arrow}>›</span>
+              </div>
+          ))}
+        </div>
 
-      <button style={styles.logoutBtn}>로그아웃</button>
-    </div>
+        <button style={styles.logoutBtn}>로그아웃</button>
+      </div>
   );
 };
 

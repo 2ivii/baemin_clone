@@ -1,4 +1,4 @@
-const Header = ({ cartCount, onCartClick }) => {
+const Header = ({ cartCount, onCartClick, onAddressClick }) => {
   const styles = {
     header: {
       background: "#29D3C4",
@@ -63,25 +63,25 @@ const Header = ({ cartCount, onCartClick }) => {
   };
 
   return (
-    <div style={styles.header}>
-      <div style={styles.addressBar}>
-        <span style={{ fontSize: 18 }}>📍</span>
-        <div>
-          <div style={styles.addressLabel}>배달주소</div>
-          <div style={styles.addressText}>마포구 서교동 ▾</div>
+      <div style={styles.header}>
+        <div style={styles.addressBar} onClick={onAddressClick}>
+          <span style={{ fontSize: 18 }}>📍</span>
+          <div>
+            <div style={styles.addressLabel}>배달주소</div>
+            <div style={styles.addressText}>마포구 서교동 ▾</div>
+          </div>
+        </div>
+
+        <div style={styles.logo}>배달의민족</div>
+
+        <div style={styles.icons}>
+          <button style={styles.iconBtn} onClick={onCartClick}>
+            🛒
+            {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}
+          </button>
+          <button style={styles.iconBtn}>🔔</button>
         </div>
       </div>
-
-      <div style={styles.logo}>배달의민족</div>
-
-      <div style={styles.icons}>
-        <button style={styles.iconBtn} onClick={onCartClick}>
-          🛒
-          {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}
-        </button>
-        <button style={styles.iconBtn}>🔔</button>
-      </div>
-    </div>
   );
 };
 
