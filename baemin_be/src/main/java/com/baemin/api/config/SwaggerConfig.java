@@ -1,5 +1,4 @@
-// src/main/java/com/tistory/blog/config/SwaggerConfig.java
-package com.tistory.blog.config;
+package com.baemin.api.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -28,8 +27,8 @@ public class SwaggerConfig {
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("Tistory Clone API Document")
-                        .description("티스토리 클론 프로젝트 백엔드 API 명세서입니다.")
+                        .title("Baemin Clone API Document")
+                        .description("배달의민족 클론 프로젝트 백엔드 API 명세서입니다.")
                         .version("v0.0.1"))
                 .addSecurityItem(securityRequirement)
                 .components(components);

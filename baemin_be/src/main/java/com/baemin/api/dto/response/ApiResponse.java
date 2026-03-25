@@ -1,16 +1,15 @@
-package com.tistory.blog.dto.response;
+package com.baemin.api.dto.response;
 
-import com.tistory.blog.entity.Member;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 공통 API 응답 래퍼 */
+// ── 공통 래퍼 ────────────────────────────────────────────────
 @Getter
 @Builder
 public class ApiResponse<T> {
     private boolean success;
-    private String  message;
-    private T       data;
+    private String message;
+    private T data;
 
     public static <T> ApiResponse<T> ok(T data) {
         return ApiResponse.<T>builder().success(true).message("OK").data(data).build();
