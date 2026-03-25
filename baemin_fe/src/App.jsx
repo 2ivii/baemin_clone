@@ -11,15 +11,37 @@ import CouponPage from "./pages/CouponPage";
 import MyReviewPage from "./pages/MyReviewPage";
 import AddressSettingPage from "./pages/AddressSettingPage";
 import AddressEditPage from "./pages/AddressEditPage";
+import LoginPage from "./pages/LoginPage";
 import { initialCartItems } from "./data/mockData";
 
 const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [cart, setCart] = useState(initialCartItems);
   const [showCart, setShowCart] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   // null | "coupon" | "myreview" | "address-setting" | "address-edit"
   const [subPage, setSubPage] = useState(null);
+
+  // 로그인 전이면 로그인 페이지만 표시
+  if (!isLoggedIn) {
+    return (
+        <>
+          <link
+              href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap"
+              rel="stylesheet"
+          />
+          <div style={{
+            maxWidth: 430,
+            margin: "0 auto",
+            minHeight: "100vh",
+            fontFamily: "'Noto Sans KR', sans-serif",
+          }}>
+            <LoginPage onLogin={() => setIsLoggedIn(true)} />
+          </div>
+        </>
+    );
+  }
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -52,13 +74,8 @@ const App = () => {
   const hideChrome = isDetailPage || isSubPage;
 
   const renderPage = () => {
-    // 서브페이지
-    if (subPage === "coupon") {
-      return <CouponPage />;
-    }
-    if (subPage === "myreview") {
-      return <MyReviewPage onBack={() => setSubPage(null)} />;
-    }
+    if (subPage === "coupon") return <CouponPage />;
+    if (subPage === "myreview") return <MyReviewPage onBack={() => setSubPage(null)} />;
     if (subPage === "address-setting") {
       return (
           <AddressSettingPage
@@ -68,11 +85,7 @@ const App = () => {
       );
     }
     if (subPage === "address-edit") {
-      return (
-          <AddressEditPage
-              onBack={() => setSubPage("address-setting")}
-          />
-      );
+      return <AddressEditPage onBack={() => setSubPage("address-setting")} />;
     }
 
     if (isDetailPage) {
@@ -86,12 +99,9 @@ const App = () => {
     }
 
     switch (activeTab) {
-      case "home":
-        return <HomePage onSelectRestaurant={setSelectedRestaurant} />;
-      case "fav":
-        return <FavoritePage onSelectRestaurant={setSelectedRestaurant} />;
-      case "order":
-        return <OrderPage />;
+      case "home":  return <HomePage onSelectRestaurant={setSelectedRestaurant} />;
+      case "fav":   return <FavoritePage onSelectRestaurant={setSelectedRestaurant} />;
+      case "order": return <OrderPage />;
       case "my":
         return (
             <MyPage
@@ -100,12 +110,10 @@ const App = () => {
                 onAddress={() => setSubPage("address-edit")}
             />
         );
-      default:
-        return <HomePage onSelectRestaurant={setSelectedRestaurant} />;
+      default: return <HomePage onSelectRestaurant={setSelectedRestaurant} />;
     }
   };
 
-  // 쿠폰페이지는 자체 헤더 없으므로 서브 헤더 추가
   const renderSubHeader = () => {
     if (subPage === "coupon") {
       return (
