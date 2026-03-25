@@ -1,0 +1,31 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/baemin_db?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: wjdalssla12
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        # 최신 Hibernate 버전에서는 MySQLDialect로 통합해서 써도 잘 작동합니다.
+        dialect: org.hibernate.dialect.MySQLDialect
+        # DB 테이블 생성 시 엔진 설정 (선택 사항)
+        default_storage_engine: InnoDB
+
+jwt:
+  secret: tistory-clone-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256
+  access-token-expiration: 3600000      # 1시간 (ms)
+  refresh-token-expiration: 604800000   # 7일 (ms)
+
+logging:
+  level:
+    com.tistory: DEBUG
+    org.springframework.security: DEBUG
