@@ -11,7 +11,6 @@ const reviewsData = [
         deliveryType: "가게배달",
         text: "오늘도 든든하게 먹으라고 사장님의 단골서비스가 딱~~!  배부르고 맛있는한끼했네요^^",
         photo: null,
-        photoEmoji: "🍱",
         photoBg: "#FFF3CD",
         ownerReply: "항상 찾아주셔서 감사합니다! 다음에도 맛있게 드세요 😊",
     },
@@ -25,51 +24,8 @@ const reviewsData = [
         deliveryType: "가게배달",
         text: "양도 푸짐하고 추운날인데 먹기좋게 따뜻하게 왔네요^^ 떡도 쫄깃하니 맛있네요...",
         photo: null,
-        photoEmoji: "🍱",
         photoBg: "#FFF3CD",
         ownerReply: null,
-    },
-    {
-        id: 3,
-        username: "배달고수",
-        reviewCount: 56,
-        avgRating: 4.5,
-        rating: 5,
-        date: "3일 전",
-        deliveryType: "가게배달",
-        text: "배달도 빠르고 맛있어요! 떡볶이가 특히 맛있었어요 재주문 의사 100%",
-        photo: null,
-        photoEmoji: "🌶️",
-        photoBg: "#FFE4E4",
-        ownerReply: "감사합니다! 또 방문해 주세요 🙏",
-    },
-    {
-        id: 4,
-        username: "홍길동123",
-        reviewCount: 12,
-        avgRating: 4.9,
-        rating: 4,
-        date: "1주 전",
-        deliveryType: "가게배달",
-        text: "순대가 신선하고 맛있어요. 다음에 또 시켜먹을 것 같아요. 포장도 깔끔하게 잘 해주셨어요.",
-        photo: null,
-        photoEmoji: "🍢",
-        photoBg: "#E3F2FD",
-        ownerReply: null,
-    },
-    {
-        id: 5,
-        username: "야식러버",
-        reviewCount: 389,
-        avgRating: 4.7,
-        rating: 5,
-        date: "1주 전",
-        deliveryType: "가게배달",
-        text: "야식으로 시켰는데 완전 맛있어요! 꼬지어묵이 특히 최고였고 세트 구성이 알차네요 👍",
-        photo: null,
-        photoEmoji: "🍢",
-        photoBg: "#E3F2FD",
-        ownerReply: "늦은 시간에도 찾아주셔서 감사해요! 😄",
     },
 ];
 
@@ -438,10 +394,7 @@ const ReviewPage = ({ restaurant, onBack }) => {
                 </div>
                 <div style={s.ownerNoticeText}>
                     <span style={s.noticeBadge}>공지</span>
-                    🚃오픈기념 [[Triple Event]]🚃{"\n"}
-                    [[배달팁 무료+바로사용 쿠폰+리뷰이벤트 증정 中]{"\n\n"}
-                    🟨밥구정 출구안내🟨{"\n"}
-                    [EXIT①-세트] 찌개세트는 언제나 든든하게
+                    사장님 공지입니다.
                 </div>
             </div>
 
@@ -452,9 +405,9 @@ const ReviewPage = ({ restaurant, onBack }) => {
                     <button style={s.reviewPolicyBtn}>리뷰 노출 정책 ›</button>
                 </div>
                 <div style={s.ownerReplyCount}>사장님댓글 {ownerReplies}개</div>
-                <div style={s.verifiedBadge}>
-                    <span>✓</span> 모든 리뷰는 검토 후 보여드려요
-                </div>
+                {/*<div style={s.verifiedBadge}>*/}
+                {/*    /!*<span>✓</span> 모든 리뷰는 검토 후 보여드려요*!/*/}
+                {/*</div>*/}
             </div>
 
             {/* Controls */}

@@ -25,30 +25,6 @@ const myReviews = [
         photoBg: null,
         edited: true,
     },
-    {
-        id: 3,
-        storeName: "푸줏간 고기도시락 대화점",
-        rating: 5,
-        date: "지난 주",
-        deliveryType: "한집배달",
-        text: "직접 가서 먹는 삼겹살보다 맛있어요 고기가 엄청 부드러워요 고기가 좋은건지 굽는 방식이 다른건지 모르겠지만 앞으로도 이렇게 온다면 삼겹살은 여기서만 시킬 것 같아요\n된장찌개도 너무 맛있구요 냉면도 맛있어요 기본적으로 요리를 잘하는 집인 것 같아요",
-        orderedItems: ["고기도시락 2인세트"],
-        photoEmoji: "🥩",
-        photoBg: "#FFF3CD",
-        edited: false,
-    },
-    {
-        id: 4,
-        storeName: "굽네치킨 마포점",
-        rating: 5,
-        date: "2주 전",
-        deliveryType: "가게배달",
-        text: "바삭하고 맛있어요! 소스가 특히 맛있었어요",
-        orderedItems: ["황올 + 레드윙 콤보", "콜라 1.25L"],
-        photoEmoji: "🍗",
-        photoBg: "#FFF3CD",
-        edited: false,
-    },
 ];
 
 const MyReviewPage = ({ onBack }) => {
@@ -227,7 +203,7 @@ const MyReviewPage = ({ onBack }) => {
 
             {/* Summary */}
             <div style={s.summarySection}>
-                <div style={s.totalCount}>내가 쓴 총 리뷰 {myReviews.length + 200}개</div>
+                <div style={s.totalCount}>내가 쓴 총 리뷰 {myReviews.length}개</div>
                 <div style={s.guideRow}>
                     리뷰 수정 안내
                     <div style={s.guideIcon}>?</div>

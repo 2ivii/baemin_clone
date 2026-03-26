@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { orderApi } from '../api/orderApi';
-import { addressApi } from '../api/addressApi';
+import { useState } from "react";
+import { IoClose, IoCheckmarkCircle } from "react-icons/io5";
+import { orderApi } from "../api/orderApi";
+import { addressApi } from "../api/addressApi";
 
-const CartModal = ({ cart, onClose, onUpdateQty, restaurant, onOrderSuccess }) => {
+const CartModal = ({ cart, onClose, onUpdateQty, restaurant }) => {
   const totalPrice = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const [ordering, setOrdering]     = useState(false);
   const [orderDone, setOrderDone]   = useState(false);
@@ -10,48 +11,39 @@ const CartModal = ({ cart, onClose, onUpdateQty, restaurant, onOrderSuccess }) =
 
   const handleOrder = async () => {
     if (cart.length === 0) return;
-    setOrdering(true);
-    setOrderError(null);
+    setOrdering(true); setOrderError(null);
     try {
-      // 기본 주소 자동 조회
-      const addresses = await addressApi.getAll();
+      const addresses  = await addressApi.getAll();
       const defaultAddr = addresses.find((a) => a.isDefault) ?? addresses[0];
-      if (!defaultAddr) {
-        setOrderError('배달 주소를 먼저 등록해주세요. (마이배민 > 배달 주소 관리)');
-        return;
-      }
+      if (!defaultAddr) { setOrderError("배달 주소를 먼저 등록해주세요. (마이배민 > 배달 주소 관리)"); return; }
       await orderApi.place({
         restaurantId:  restaurant?.id,
         addressId:     defaultAddr.id,
-        paymentMethod: 'CARD',
+        paymentMethod: "CARD",
         items: cart.map((item) => ({ menuId: item.id, quantity: item.qty })),
       });
       setOrderDone(true);
-      onOrderSuccess?.();
-    } catch (e) {
-      setOrderError(e.message || '주문에 실패했습니다.');
-    } finally {
-      setOrdering(false);
-    }
+    } catch (e) { setOrderError(e.message || "주문에 실패했습니다."); }
+    finally { setOrdering(false); }
   };
 
   const s = {
-    overlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 150 },
-    modal:    { position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 100px', zIndex: 200, boxShadow: '0 -4px 30px rgba(0,0,0,0.15)' },
-    header:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    title:    { fontSize: 18, fontWeight: 800 },
-    closeBtn: { background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#555' },
-    storeName:{ fontSize: 12, color: '#29D3C4', fontWeight: 700, marginBottom: 12 },
-    item:     { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f0f0' },
-    itemName: { fontSize: 14, fontWeight: 600, color: '#1A1A1A' },
-    itemPrice:{ fontSize: 13, color: '#29D3C4', fontWeight: 700, marginTop: 2 },
-    qtyRow:   { display: 'flex', alignItems: 'center', gap: 10 },
-    qtyBtn:   { width: 28, height: 28, borderRadius: '50%', border: '2px solid #29D3C4', background: 'none', color: '#29D3C4', fontWeight: 800, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    total:    { display: 'flex', justifyContent: 'space-between', padding: '14px 0', fontSize: 16, fontWeight: 800 },
-    orderBtn: (d) => ({ width: '100%', padding: '16px', background: d ? '#aaa' : '#29D3C4', color: '#fff', border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 800, cursor: d ? 'not-allowed' : 'pointer', marginTop: 8 }),
-    errMsg:   { color: '#FF3B30', fontSize: 13, marginBottom: 8, textAlign: 'center' },
-    doneWrap: { textAlign: 'center', padding: '20px 0' },
-    doneBtn:  { marginTop: 20, width: '100%', padding: '14px', background: '#29D3C4', color: '#fff', border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 800, cursor: 'pointer' },
+    overlay:  { position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:150 },
+    modal:    { position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:430, background:"#fff", borderRadius:"20px 20px 0 0", padding:"20px 20px 100px", zIndex:200, boxShadow:"0 -4px 30px rgba(0,0,0,0.15)" },
+    header:   { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 },
+    title:    { fontSize:18, fontWeight:800, color:"#1A1A1A" },
+    closeBtn: { background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center" },
+    storeName:{ fontSize:12, color:"#29D3C4", fontWeight:700, marginBottom:12 },
+    item:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0", borderBottom:"1px solid #f0f0f0" },
+    itemName: { fontSize:14, fontWeight:600, color:"#1A1A1A" },
+    itemPrice:{ fontSize:13, color:"#29D3C4", fontWeight:700, marginTop:2 },
+    qtyRow:   { display:"flex", alignItems:"center", gap:10 },
+    qtyBtn:   { width:28, height:28, borderRadius:"50%", border:"2px solid #29D3C4", background:"none", color:"#29D3C4", fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" },
+    total:    { display:"flex", justifyContent:"space-between", padding:"14px 0", fontSize:16, fontWeight:800 },
+    orderBtn: (d) => ({ width:"100%", padding:"16px", background:d?"#aaa":"#29D3C4", color:"#fff", border:"none", borderRadius:14, fontSize:16, fontWeight:800, cursor:d?"not-allowed":"pointer", marginTop:8 }),
+    errMsg:   { color:"#FF3B30", fontSize:13, marginBottom:8, textAlign:"center" },
+    doneWrap: { textAlign:"center", padding:"20px 0" },
+    doneBtn:  { marginTop:20, width:"100%", padding:"14px", background:"#29D3C4", color:"#fff", border:"none", borderRadius:14, fontSize:15, fontWeight:800, cursor:"pointer" },
   };
 
   return (
@@ -59,21 +51,20 @@ const CartModal = ({ cart, onClose, onUpdateQty, restaurant, onOrderSuccess }) =
         <div style={s.overlay} onClick={onClose} />
         <div style={s.modal}>
           <div style={s.header}>
-            <span style={s.title}>🛒 장바구니</span>
-            <button style={s.closeBtn} onClick={onClose}>✕</button>
+            <span style={s.title}>장바구니</span>
+            <button style={s.closeBtn} onClick={onClose}><IoClose size={24} color="#555" /></button>
           </div>
 
           {orderDone ? (
               <div style={s.doneWrap}>
-                <div style={{ fontSize: 56 }}>✅</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#1A1A1A', margin: '12px 0 4px' }}>주문이 완료되었습니다!</div>
-                <div style={{ fontSize: 13, color: '#888' }}>음식이 곧 출발할 예정이에요 🛵</div>
+                <IoCheckmarkCircle size={64} color="#29D3C4" />
+                <div style={{ fontSize:18, fontWeight:800, color:"#1A1A1A", margin:"12px 0 4px" }}>주문이 완료되었습니다!</div>
+                <div style={{ fontSize:13, color:"#888" }}>음식이 곧 출발할 예정이에요 🛵</div>
                 <button style={s.doneBtn} onClick={onClose}>확인</button>
               </div>
           ) : (
               <>
-                <div style={s.storeName}>{restaurant?.name || '음식점'}</div>
-
+                <div style={s.storeName}>{restaurant?.name || "음식점"}</div>
                 {cart.map((item) => (
                     <div key={item.id} style={s.item}>
                       <div>
@@ -82,25 +73,18 @@ const CartModal = ({ cart, onClose, onUpdateQty, restaurant, onOrderSuccess }) =
                       </div>
                       <div style={s.qtyRow}>
                         <button style={s.qtyBtn} onClick={() => onUpdateQty(item.id, -1)}>−</button>
-                        <span style={{ fontWeight: 700, fontSize: 15 }}>{item.qty}</span>
+                        <span style={{ fontWeight:700, fontSize:15 }}>{item.qty}</span>
                         <button style={s.qtyBtn} onClick={() => onUpdateQty(item.id, 1)}>+</button>
                       </div>
                     </div>
                 ))}
-
                 <div style={s.total}>
                   <span>합계</span>
-                  <span style={{ color: '#29D3C4' }}>{totalPrice.toLocaleString()}원</span>
+                  <span style={{ color:"#29D3C4" }}>{totalPrice.toLocaleString()}원</span>
                 </div>
-
                 {orderError && <div style={s.errMsg}>{orderError}</div>}
-
-                <button
-                    style={s.orderBtn(ordering || cart.length === 0)}
-                    onClick={handleOrder}
-                    disabled={ordering || cart.length === 0}
-                >
-                  {ordering ? '주문 중...' : `${totalPrice.toLocaleString()}원 주문하기`}
+                <button style={s.orderBtn(ordering || cart.length === 0)} onClick={handleOrder} disabled={ordering || cart.length === 0}>
+                  {ordering ? "주문 중..." : `${totalPrice.toLocaleString()}원 주문하기`}
                 </button>
               </>
           )}

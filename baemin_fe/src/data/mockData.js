@@ -12,9 +12,9 @@ export const categories = [
 ];
 
 export const banners = [
-  { id: 1, bg: "#29D3C4", text: "오늘의 특가 🎉", sub: "최대 50% 할인" },
-  { id: 2, bg: "#FF6B6B", text: "신규 가입 혜택 🎁", sub: "첫 주문 3,000원 할인" },
-  { id: 3, bg: "#6C63FF", text: "배민클럽 가입 👑", sub: "무제한 무료배달" },
+  { id: 1, bg: "#29D3C4", text: "오늘의 특가 ", sub: "최대 50% 할인" },
+  { id: 2, bg: "#FF6B6B", text: "신규 가입 혜택 ", sub: "첫 주문 3,000원 할인" },
+  { id: 3, bg: "#6C63FF", text: "배민클럽 가입 ", sub: "무제한 무료배달" },
 ];
 
 export const restaurants = [
