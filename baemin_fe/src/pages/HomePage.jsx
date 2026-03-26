@@ -1,14 +1,52 @@
-import { useState } from "react";
-import Banner from "../components/Banner";
-import CategoryGrid from "../components/CategoryGrid";
-import FilterChips from "../components/FilterChips";
-import RestaurantCard from "../components/RestaurantCard";
-import SearchBar from "../components/SearchBar";
-import { restaurants } from "../data/mockData";
+import { useState, useEffect } from 'react';
+import Banner from '../components/Banner';
+import CategoryGrid from '../components/CategoryGrid';
+import FilterChips from '../components/FilterChips';
+import RestaurantCard from '../components/RestaurantCard';
+import SearchBar from '../components/SearchBar';
+import { restaurantApi } from '../api/restaurantApi';
+import { restaurants as mockRestaurants } from '../data/mockData';
 
 const HomePage = ({ onSelectRestaurant }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [likedRestaurants, setLikedRestaurants] = useState(new Set([1, 3]));
+  const [restaurants, setRestaurants] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRestaurants(selectedCategory);
+  }, [selectedCategory]);
+
+  const fetchRestaurants = async (category) => {
+    setLoading(true);
+    try {
+      const data = await restaurantApi.getList(category);
+      // 백엔드 응답을 프론트 형식으로 변환
+      const mapped = data.map((r) => ({
+        id:           r.id,
+        name:         r.name,
+        category:     r.category?.name || '',
+        rating:       r.rating,
+        reviews:      r.reviewCount,
+        deliveryTime: r.deliveryTime || '30~40분',
+        minOrder:     r.minOrder ? `${r.minOrder.toLocaleString()}원` : '0원',
+        deliveryFee:  r.deliveryFee === 0 ? '무료' : `${r.deliveryFee.toLocaleString()}원`,
+        tags:         [],
+        img:          r.imgEmoji || '🍽️',
+        bg:           r.bgColor  || '#F5F5F5',
+      }));
+      setRestaurants(mapped.length > 0 ? mapped : mockRestaurants);
+    } catch {
+      // API 실패 시 mockData 폴백
+      setRestaurants(
+          category
+              ? mockRestaurants.filter((r) => r.category === category)
+              : mockRestaurants
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleLike = (id) => {
     setLikedRestaurants((prev) => {
@@ -18,49 +56,46 @@ const HomePage = ({ onSelectRestaurant }) => {
     });
   };
 
-  const filtered = selectedCategory
-    ? restaurants.filter((r) => r.category === selectedCategory)
-    : restaurants;
-
   const styles = {
     sectionTitle: {
-      padding: "4px 16px 8px",
+      padding: '4px 16px 8px',
       fontSize: 17,
       fontWeight: 800,
-      color: "#1A1A1A",
-      display: "flex",
-      alignItems: "baseline",
+      color: '#1A1A1A',
+      display: 'flex',
+      alignItems: 'baseline',
       gap: 6,
     },
-    count: {
-      fontSize: 13,
-      fontWeight: 500,
-      color: "#888",
-    },
+    count:   { fontSize: 13, fontWeight: 500, color: '#888' },
+    loading: { textAlign: 'center', padding: '40px 0', color: '#aaa', fontSize: 14 },
   };
 
   return (
-    <div>
-      <SearchBar />
-      <Banner />
-      <CategoryGrid selected={selectedCategory} onSelect={setSelectedCategory} />
-      <FilterChips />
+      <div>
+        <SearchBar />
+        <Banner />
+        <CategoryGrid selected={selectedCategory} onSelect={setSelectedCategory} />
+        <FilterChips />
 
-      <div style={styles.sectionTitle}>
-        {selectedCategory ? `${selectedCategory} 음식점` : "🔥 지금 인기있는 음식점"}
-        <span style={styles.count}>{filtered.length}개</span>
-      </div>
-
-      {filtered.map((r) => (
-        <div key={r.id} onClick={() => onSelectRestaurant(r)} style={{ cursor: "pointer" }}>
-          <RestaurantCard
-            restaurant={r}
-            liked={likedRestaurants.has(r.id)}
-            onToggleLike={toggleLike}
-          />
+        <div style={styles.sectionTitle}>
+          {selectedCategory ? `${selectedCategory} 음식점` : '🔥 지금 인기있는 음식점'}
+          <span style={styles.count}>{restaurants.length}개</span>
         </div>
-      ))}
-    </div>
+
+        {loading ? (
+            <div style={styles.loading}>음식점을 불러오는 중... 🍽️</div>
+        ) : (
+            restaurants.map((r) => (
+                <div key={r.id} onClick={() => onSelectRestaurant(r)} style={{ cursor: 'pointer' }}>
+                  <RestaurantCard
+                      restaurant={r}
+                      liked={likedRestaurants.has(r.id)}
+                      onToggleLike={toggleLike}
+                  />
+                </div>
+            ))
+        )}
+      </div>
   );
 };
 
