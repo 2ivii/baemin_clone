@@ -17,30 +17,9 @@ const addresses = [
     },
     {
         id: 3,
-        label: "인천 중구 서해대로417번길 1",
-        detail: "인천 중구 서해대로417번길 1 A동1902호",
-        note: "문 앞에 두고 벨 눌러주세요",
-        isCurrent: false,
-    },
-    {
-        id: 4,
         label: "경기 고양시 덕양구 항공대학로 76",
         detail: "경기 고양시 덕양구 항공대학로 76 전자관 4층 419호",
         note: "문 앞에 두고 노크해주세요\n엘레베이터 타신다면 내려서 오른쪽입니다",
-        isCurrent: false,
-    },
-    {
-        id: 5,
-        label: "토계동 476",
-        detail: "전남 나주시 토계안길 19 토계안길17",
-        note: "문 앞에 두고 벨 눌러주세요",
-        isCurrent: false,
-    },
-    {
-        id: 6,
-        label: "서교동 377-4",
-        detail: "서울 마포구 서교동 377-4",
-        note: "문 앞에 두고 벨 눌러주세요",
         isCurrent: false,
     },
 ];

@@ -1,210 +1,153 @@
-import { useState } from "react";
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { authApi } from '../api/authApi';
 
-const LoginPage = ({ onLogin }) => {
-    const [mode, setMode] = useState("login"); // "login" | "signup"
+const LoginPage = ({ onLoginSuccess }) => {
+    const { login, signup } = useAuth();
+    const [mode, setMode] = useState('login'); // 'login' | 'signup'
 
-    // 로그인 폼
-    const [loginId, setLoginId] = useState("");
-    const [loginPw, setLoginPw] = useState("");
-    const [loginError, setLoginError] = useState("");
+    /* ── 로그인 상태 ── */
+    const [loginId, setLoginId]   = useState('');
+    const [loginPw, setLoginPw]   = useState('');
+    const [loginErr, setLoginErr] = useState('');
+    const [loginLoading, setLoginLoading] = useState(false);
 
-    // 회원가입 폼
-    const [signupId, setSignupId] = useState("");
-    const [signupPw, setSignupPw] = useState("");
-    const [signupPwConfirm, setSignupPwConfirm] = useState("");
-    const [signupName, setSignupName] = useState("");
-    const [signupBirth, setSignupBirth] = useState("");
-    const [signupErrors, setSignupErrors] = useState({});
+    /* ── 회원가입 상태 ── */
+    const [form, setForm] = useState({
+        loginId: '', password: '', passwordConfirm: '',
+        name: '', birthDate: '',
+    });
+    const [formErrors, setFormErrors] = useState({});
+    const [signupLoading, setSignupLoading] = useState(false);
     const [signupDone, setSignupDone] = useState(false);
 
-    const handleLogin = () => {
-        if (!loginId || !loginPw) {
-            setLoginError("아이디와 비밀번호를 입력해주세요.");
+    /* 아이디 중복확인 */
+    const [idCheck, setIdCheck] = useState(null); // null | { ok, msg }
+    const [idChecking, setIdChecking] = useState(false);
+
+    /* ── 핸들러 ── */
+    const handleLogin = async () => {
+        if (!loginId.trim() || !loginPw.trim()) {
+            setLoginErr('아이디와 비밀번호를 입력해주세요.');
             return;
         }
-        setLoginError("");
-        onLogin?.();
+        setLoginLoading(true);
+        setLoginErr('');
+        try {
+            const res = await login(loginId.trim(), loginPw);
+            onLoginSuccess?.(res.user);
+        } catch (e) {
+            setLoginErr(e.message);
+        } finally {
+            setLoginLoading(false);
+        }
     };
 
-    const validateSignup = () => {
+    const handleCheckId = async () => {
+        if (form.loginId.length < 4) {
+            setIdCheck({ ok: false, msg: '아이디는 4자 이상이어야 해요.' });
+            return;
+        }
+        setIdChecking(true);
+        try {
+            const res = await authApi.checkLoginId(form.loginId);
+            setIdCheck(
+                res.available
+                    ? { ok: true,  msg: '사용 가능한 아이디예요 ✓' }
+                    : { ok: false, msg: '이미 사용 중인 아이디예요.' }
+            );
+        } catch {
+            setIdCheck({ ok: false, msg: '확인 중 오류가 발생했어요.' });
+        } finally {
+            setIdChecking(false);
+        }
+    };
+
+    const validateForm = () => {
         const errs = {};
-        if (!signupId || signupId.length < 4) errs.id = "아이디는 4자 이상이어야 해요.";
-        if (!signupPw || signupPw.length < 6) errs.pw = "비밀번호는 6자 이상이어야 해요.";
-        if (signupPw !== signupPwConfirm) errs.pwConfirm = "비밀번호가 일치하지 않아요.";
-        if (!signupName) errs.name = "이름을 입력해주세요.";
-        if (!signupBirth || signupBirth.length < 8) errs.birth = "생년월일 8자리를 입력해주세요.";
+        if (form.loginId.length < 4)        errs.loginId = '아이디는 4자 이상이어야 해요.';
+        if (idCheck && !idCheck.ok)          errs.loginId = idCheck.msg;
+        if (form.password.length < 6)        errs.password = '비밀번호는 6자 이상이어야 해요.';
+        if (form.password !== form.passwordConfirm)
+            errs.passwordConfirm = '비밀번호가 일치하지 않아요.';
+        if (!form.name.trim())               errs.name = '이름을 입력해주세요.';
+        if (form.birthDate.replace(/\D/g,'').length < 8)
+            errs.birthDate = '생년월일 8자리를 입력해주세요.';
         return errs;
     };
 
-    const handleSignup = () => {
-        const errs = validateSignup();
-        setSignupErrors(errs);
-        if (Object.keys(errs).length === 0) {
+    const handleSignup = async () => {
+        const errs = validateForm();
+        setFormErrors(errs);
+        if (Object.keys(errs).length > 0) return;
+
+        setSignupLoading(true);
+        try {
+            await signup({
+                loginId:   form.loginId,
+                password:  form.password,
+                name:      form.name,
+                birthDate: form.birthDate,
+            });
             setSignupDone(true);
+        } catch (e) {
+            setFormErrors({ general: e.message });
+        } finally {
+            setSignupLoading(false);
         }
     };
 
     const formatBirth = (val) => {
-        const digits = val.replace(/\D/g, "").slice(0, 8);
-        if (digits.length <= 4) return digits;
-        if (digits.length <= 6) return `${digits.slice(0, 4)}.${digits.slice(4)}`;
-        return `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`;
+        const d = val.replace(/\D/g, '').slice(0, 8);
+        if (d.length <= 4) return d;
+        if (d.length <= 6) return `${d.slice(0,4)}.${d.slice(4)}`;
+        return `${d.slice(0,4)}.${d.slice(4,6)}.${d.slice(6)}`;
     };
 
+    /* ── 스타일 ── */
     const s = {
-        page: {
-            minHeight: "100vh",
-            background: "#fff",
-            display: "flex",
-            flexDirection: "column",
-            fontFamily: "'Noto Sans KR', sans-serif",
-        },
-        // 상단 로고 영역
-        hero: {
-            background: "#29D3C4",
-            padding: "48px 24px 36px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 8,
-        },
-        logoEmoji: {
-            fontSize: 48,
-            marginBottom: 4,
-        },
-        logoText: {
-            fontSize: 28,
-            fontWeight: 900,
-            color: "#fff",
-            letterSpacing: -1,
-            fontFamily: "'Black Han Sans', sans-serif",
-        },
-        logoSub: {
-            fontSize: 13,
-            color: "rgba(255,255,255,0.85)",
-            fontWeight: 500,
-        },
-        // 탭
-        tabRow: {
-            display: "flex",
-            borderBottom: "1px solid #eee",
-            background: "#fff",
-        },
-        tab: (active) => ({
-            flex: 1,
-            padding: "16px 0",
-            textAlign: "center",
-            fontSize: 15,
-            fontWeight: active ? 800 : 500,
-            color: active ? "#29D3C4" : "#aaa",
-            borderBottom: active ? "2px solid #29D3C4" : "2px solid transparent",
-            cursor: "pointer",
-            background: "none",
-            border: "none",
-            transition: "all 0.2s",
-        }),
-        // 폼 영역
-        form: {
-            padding: "28px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            flex: 1,
-        },
-        fieldGroup: {
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-        },
-        label: {
-            fontSize: 12,
-            fontWeight: 700,
-            color: "#555",
-        },
-        input: (hasError) => ({
-            padding: "14px 16px",
-            borderRadius: 12,
-            border: `1.5px solid ${hasError ? "#FF3B30" : "#e8e8e8"}`,
-            fontSize: 15,
-            color: "#1A1A1A",
-            outline: "none",
-            background: "#fafafa",
-            transition: "border 0.2s",
-            width: "100%",
-            boxSizing: "border-box",
-        }),
-        errorMsg: {
-            fontSize: 12,
-            color: "#FF3B30",
-            marginTop: 2,
-        },
-        submitBtn: {
-            width: "100%",
-            padding: "17px",
-            background: "#29D3C4",
-            color: "#fff",
-            border: "none",
-            borderRadius: 14,
-            fontSize: 16,
-            fontWeight: 800,
-            cursor: "pointer",
-            marginTop: 8,
-            letterSpacing: -0.3,
-        },
-        errorBox: {
-            background: "#FFF0F0",
-            border: "1px solid #FFD0D0",
-            borderRadius: 10,
-            padding: "12px 14px",
-            fontSize: 13,
-            color: "#FF3B30",
-            fontWeight: 600,
-            textAlign: "center",
-        },
-        // 회원가입 완료
-        doneWrap: {
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "40px 24px",
-            gap: 16,
-        },
-        doneEmoji: { fontSize: 64, marginBottom: 8 },
-        doneTitle: { fontSize: 22, fontWeight: 900, color: "#1A1A1A", textAlign: "center" },
-        doneSub: { fontSize: 14, color: "#888", textAlign: "center", lineHeight: 1.6 },
-        doneBtn: {
-            width: "100%",
-            padding: "17px",
-            background: "#29D3C4",
-            color: "#fff",
-            border: "none",
-            borderRadius: 14,
-            fontSize: 16,
-            fontWeight: 800,
-            cursor: "pointer",
-            marginTop: 16,
-        },
+        page:    { minHeight:'100vh', background:'#fff', display:'flex', flexDirection:'column' },
+        hero:    { background:'#29D3C4', padding:'48px 24px 36px', display:'flex', flexDirection:'column', alignItems:'center', gap:8 },
+        emoji:   { fontSize:48 },
+        logo:    { fontSize:28, fontWeight:900, color:'#fff', letterSpacing:-1, fontFamily:"'Black Han Sans', sans-serif" },
+        sub:     { fontSize:13, color:'rgba(255,255,255,0.85)' },
+        tabs:    { display:'flex', borderBottom:'1px solid #eee' },
+        tab: (a) => ({ flex:1, padding:'16px 0', textAlign:'center', fontSize:15, fontWeight: a?800:500,
+            color: a?'#29D3C4':'#aaa', borderBottom: a?'2px solid #29D3C4':'2px solid transparent',
+            cursor:'pointer', background:'none', border:'none' }),
+        form:    { padding:'28px 24px', display:'flex', flexDirection:'column', gap:16, flex:1 },
+        group:   { display:'flex', flexDirection:'column', gap:6 },
+        label:   { fontSize:12, fontWeight:700, color:'#555' },
+        input: (err) => ({ padding:'14px 16px', borderRadius:12,
+            border:`1.5px solid ${err?'#FF3B30':'#e8e8e8'}`,
+            fontSize:15, color:'#1A1A1A', outline:'none',
+            background:'#fafafa', width:'100%', boxSizing:'border-box' }),
+        err:     { fontSize:12, color:'#FF3B30' },
+        ok:      { fontSize:12, color:'#29D3C4' },
+        errBox:  { background:'#FFF0F0', border:'1px solid #FFD0D0', borderRadius:10, padding:'12px 14px', fontSize:13, color:'#FF3B30', textAlign:'center' },
+        row:     { display:'flex', gap:8 },
+        checkBtn:(loading) => ({ padding:'0 14px', borderRadius:12, border:'1.5px solid #29D3C4',
+            background:'#fff', color: loading?'#aaa':'#29D3C4',
+            fontSize:13, fontWeight:700, cursor: loading?'not-allowed':'pointer',
+            whiteSpace:'nowrap' }),
+        btn: (loading) => ({ width:'100%', padding:'17px', background: loading?'#aaa':'#29D3C4',
+            color:'#fff', border:'none', borderRadius:14, fontSize:16,
+            fontWeight:800, cursor: loading?'not-allowed':'pointer', marginTop:8 }),
+        doneWrap:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 24px', gap:16 },
+        doneBtn: { width:'100%', padding:'17px', background:'#29D3C4', color:'#fff', border:'none', borderRadius:14, fontSize:16, fontWeight:800, cursor:'pointer', marginTop:16 },
     };
 
-    // 회원가입 완료 화면
+    /* ── 회원가입 완료 화면 ── */
     if (signupDone) {
         return (
             <div style={s.page}>
-                <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-                <div style={s.hero}>
-                    <div style={s.logoText}>배달의민족</div>
-                </div>
+                <div style={s.hero}><div style={s.logo}>배달의민족</div></div>
                 <div style={s.doneWrap}>
-                    <div style={s.doneEmoji}>🎉</div>
-                    <div style={s.doneTitle}>{signupName}님,{"\n"}환영합니다!</div>
-                    <div style={s.doneSub}>
-                        배달의민족 회원이 되셨어요.{"\n"}
-                        맛있는 음식을 빠르게 만나보세요!
-                    </div>
-                    <button style={s.doneBtn} onClick={onLogin}>
-                        바로 시작하기 🛵
+                    <div style={{ fontSize:64 }}>🎉</div>
+                    <div style={{ fontSize:22, fontWeight:900, color:'#1A1A1A', textAlign:'center' }}>{form.name}님,{'\n'}환영합니다!</div>
+                    <div style={{ fontSize:14, color:'#888', textAlign:'center', lineHeight:1.6 }}>회원가입이 완료되었어요.{'\n'}지금 로그인하고 맛있는 음식을 만나보세요!</div>
+                    <button style={s.doneBtn} onClick={() => { setSignupDone(false); setMode('login'); setLoginId(form.loginId); }}>
+                        로그인하러 가기 🛵
                     </button>
                 </div>
             </div>
@@ -213,63 +156,45 @@ const LoginPage = ({ onLogin }) => {
 
     return (
         <div style={s.page}>
-            <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-
-            {/* 로고 헤더 */}
             <div style={s.hero}>
-                <div style={s.logoEmoji}>🛵</div>
-                <div style={s.logoText}>배달의민족</div>
-                <div style={s.logoSub}>맛있는 음식, 빠르게 배달</div>
+                <div style={s.emoji}>🛵</div>
+                <div style={s.logo}>배달의민족</div>
+                <div style={s.sub}>맛있는 음식, 빠르게 배달</div>
             </div>
 
             {/* 탭 */}
-            <div style={s.tabRow}>
-                <button style={s.tab(mode === "login")} onClick={() => { setMode("login"); setLoginError(""); }}>
-                    로그인
-                </button>
-                <button style={s.tab(mode === "signup")} onClick={() => { setMode("signup"); setSignupErrors({}); }}>
-                    회원가입
-                </button>
+            <div style={s.tabs}>
+                <button style={s.tab(mode==='login')}  onClick={() => { setMode('login');  setLoginErr(''); }}>로그인</button>
+                <button style={s.tab(mode==='signup')} onClick={() => { setMode('signup'); setFormErrors({}); }}>회원가입</button>
             </div>
 
             {/* ── 로그인 폼 ── */}
-            {mode === "login" && (
+            {mode === 'login' && (
                 <div style={s.form}>
-                    {loginError && <div style={s.errorBox}>{loginError}</div>}
+                    {loginErr && <div style={s.errBox}>{loginErr}</div>}
 
-                    <div style={s.fieldGroup}>
+                    <div style={s.group}>
                         <label style={s.label}>아이디</label>
-                        <input
-                            style={s.input(false)}
-                            placeholder="아이디를 입력해주세요"
-                            value={loginId}
-                            onChange={(e) => setLoginId(e.target.value)}
-                            autoComplete="username"
-                        />
+                        <input style={s.input(false)} placeholder="아이디를 입력해주세요"
+                               value={loginId} onChange={(e) => setLoginId(e.target.value)}
+                               autoComplete="username" />
                     </div>
 
-                    <div style={s.fieldGroup}>
+                    <div style={s.group}>
                         <label style={s.label}>비밀번호</label>
-                        <input
-                            style={s.input(false)}
-                            type="password"
-                            placeholder="비밀번호를 입력해주세요"
-                            value={loginPw}
-                            onChange={(e) => setLoginPw(e.target.value)}
-                            autoComplete="current-password"
-                            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                        />
+                        <input style={s.input(false)} type="password" placeholder="비밀번호를 입력해주세요"
+                               value={loginPw} onChange={(e) => setLoginPw(e.target.value)}
+                               autoComplete="current-password"
+                               onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
                     </div>
 
-                    <button style={s.submitBtn} onClick={handleLogin}>
-                        로그인
+                    <button style={s.btn(loginLoading)} onClick={handleLogin} disabled={loginLoading}>
+                        {loginLoading ? '로그인 중...' : '로그인'}
                     </button>
 
-                    <div style={{ textAlign: "center", marginTop: 8 }}>
-            <span
-                style={{ fontSize: 13, color: "#888", cursor: "pointer", textDecoration: "underline" }}
-                onClick={() => setMode("signup")}
-            >
+                    <div style={{ textAlign:'center' }}>
+            <span style={{ fontSize:13, color:'#888', cursor:'pointer', textDecoration:'underline' }}
+                  onClick={() => setMode('signup')}>
               아직 회원이 아니신가요? 회원가입
             </span>
                     </div>
@@ -277,72 +202,67 @@ const LoginPage = ({ onLogin }) => {
             )}
 
             {/* ── 회원가입 폼 ── */}
-            {mode === "signup" && (
+            {mode === 'signup' && (
                 <div style={s.form}>
-                    <div style={s.fieldGroup}>
+                    {formErrors.general && <div style={s.errBox}>{formErrors.general}</div>}
+
+                    {/* 아이디 */}
+                    <div style={s.group}>
                         <label style={s.label}>아이디</label>
-                        <input
-                            style={s.input(!!signupErrors.id)}
-                            placeholder="영문·숫자 4자 이상"
-                            value={signupId}
-                            onChange={(e) => setSignupId(e.target.value)}
-                            autoComplete="username"
-                        />
-                        {signupErrors.id && <div style={s.errorMsg}>{signupErrors.id}</div>}
+                        <div style={s.row}>
+                            <input
+                                style={{ ...s.input(!!formErrors.loginId), flex:1 }}
+                                placeholder="영문·숫자 4자 이상"
+                                value={form.loginId}
+                                onChange={(e) => { setForm(f => ({...f, loginId: e.target.value})); setIdCheck(null); }}
+                                autoComplete="username"
+                            />
+                            <button style={s.checkBtn(idChecking)} onClick={handleCheckId} disabled={idChecking}>
+                                {idChecking ? '확인 중' : '중복확인'}
+                            </button>
+                        </div>
+                        {idCheck && <div style={idCheck.ok ? s.ok : s.err}>{idCheck.msg}</div>}
+                        {formErrors.loginId && !idCheck && <div style={s.err}>{formErrors.loginId}</div>}
                     </div>
 
-                    <div style={s.fieldGroup}>
+                    {/* 비밀번호 */}
+                    <div style={s.group}>
                         <label style={s.label}>비밀번호</label>
-                        <input
-                            style={s.input(!!signupErrors.pw)}
-                            type="password"
-                            placeholder="6자 이상 입력해주세요"
-                            value={signupPw}
-                            onChange={(e) => setSignupPw(e.target.value)}
-                            autoComplete="new-password"
-                        />
-                        {signupErrors.pw && <div style={s.errorMsg}>{signupErrors.pw}</div>}
+                        <input style={s.input(!!formErrors.password)} type="password" placeholder="6자 이상"
+                               value={form.password} onChange={(e) => setForm(f => ({...f, password: e.target.value}))}
+                               autoComplete="new-password" />
+                        {formErrors.password && <div style={s.err}>{formErrors.password}</div>}
                     </div>
 
-                    <div style={s.fieldGroup}>
+                    {/* 비밀번호 확인 */}
+                    <div style={s.group}>
                         <label style={s.label}>비밀번호 확인</label>
-                        <input
-                            style={s.input(!!signupErrors.pwConfirm)}
-                            type="password"
-                            placeholder="비밀번호를 한 번 더 입력해주세요"
-                            value={signupPwConfirm}
-                            onChange={(e) => setSignupPwConfirm(e.target.value)}
-                            autoComplete="new-password"
-                        />
-                        {signupErrors.pwConfirm && <div style={s.errorMsg}>{signupErrors.pwConfirm}</div>}
+                        <input style={s.input(!!formErrors.passwordConfirm)} type="password" placeholder="비밀번호 재입력"
+                               value={form.passwordConfirm} onChange={(e) => setForm(f => ({...f, passwordConfirm: e.target.value}))}
+                               autoComplete="new-password" />
+                        {formErrors.passwordConfirm && <div style={s.err}>{formErrors.passwordConfirm}</div>}
                     </div>
 
-                    <div style={s.fieldGroup}>
+                    {/* 이름 */}
+                    <div style={s.group}>
                         <label style={s.label}>이름</label>
-                        <input
-                            style={s.input(!!signupErrors.name)}
-                            placeholder="실명을 입력해주세요"
-                            value={signupName}
-                            onChange={(e) => setSignupName(e.target.value)}
-                        />
-                        {signupErrors.name && <div style={s.errorMsg}>{signupErrors.name}</div>}
+                        <input style={s.input(!!formErrors.name)} placeholder="실명을 입력해주세요"
+                               value={form.name} onChange={(e) => setForm(f => ({...f, name: e.target.value}))} />
+                        {formErrors.name && <div style={s.err}>{formErrors.name}</div>}
                     </div>
 
-                    <div style={s.fieldGroup}>
+                    {/* 생년월일 */}
+                    <div style={s.group}>
                         <label style={s.label}>생년월일</label>
-                        <input
-                            style={s.input(!!signupErrors.birth)}
-                            placeholder="예) 1999.01.01"
-                            value={signupBirth}
-                            onChange={(e) => setSignupBirth(formatBirth(e.target.value))}
-                            inputMode="numeric"
-                            maxLength={10}
-                        />
-                        {signupErrors.birth && <div style={s.errorMsg}>{signupErrors.birth}</div>}
+                        <input style={s.input(!!formErrors.birthDate)} placeholder="예) 1999.01.01"
+                               value={form.birthDate}
+                               onChange={(e) => setForm(f => ({...f, birthDate: formatBirth(e.target.value)}))}
+                               inputMode="numeric" maxLength={10} />
+                        {formErrors.birthDate && <div style={s.err}>{formErrors.birthDate}</div>}
                     </div>
 
-                    <button style={s.submitBtn} onClick={handleSignup}>
-                        가입하기
+                    <button style={s.btn(signupLoading)} onClick={handleSignup} disabled={signupLoading}>
+                        {signupLoading ? '가입 중...' : '가입하기'}
                     </button>
                 </div>
             )}
