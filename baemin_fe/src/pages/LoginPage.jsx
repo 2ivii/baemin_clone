@@ -13,7 +13,9 @@ const LoginPage = ({ onLoginSuccess }) => {
     const [loginErr, setLoginErr] = useState("");
     const [loginLoading, setLoginLoading] = useState(false);
 
-    const [form, setForm] = useState({ loginId:"", password:"", passwordConfirm:"", name:"", birthDate:"" });
+    const [form, setForm] = useState({
+        loginId:"", password:"", passwordConfirm:"", name:"", birthDate:"", role:"USER"
+    });
     const [formErrors, setFormErrors] = useState({});
     const [signupLoading, setSignupLoading] = useState(false);
     const [signupDone, setSignupDone]       = useState(false);
@@ -43,12 +45,12 @@ const LoginPage = ({ onLoginSuccess }) => {
 
     const validateForm = () => {
         const errs = {};
-        if (form.loginId.length < 4)                           errs.loginId = "아이디는 4자 이상이어야 해요.";
-        if (idCheck && !idCheck.ok)                            errs.loginId = idCheck.msg;
-        if (form.password.length < 6)                          errs.password = "비밀번호는 6자 이상이어야 해요.";
-        if (form.password !== form.passwordConfirm)            errs.passwordConfirm = "비밀번호가 일치하지 않아요.";
-        if (!form.name.trim())                                 errs.name = "이름을 입력해주세요.";
-        if (form.birthDate.replace(/\D/g,"").length < 8)       errs.birthDate = "생년월일 8자리를 입력해주세요.";
+        if (form.loginId.length < 4)                     errs.loginId = "아이디는 4자 이상이어야 해요.";
+        if (idCheck && !idCheck.ok)                       errs.loginId = idCheck.msg;
+        if (form.password.length < 6)                     errs.password = "비밀번호는 6자 이상이어야 해요.";
+        if (form.password !== form.passwordConfirm)       errs.passwordConfirm = "비밀번호가 일치하지 않아요.";
+        if (!form.name.trim())                            errs.name = "이름을 입력해주세요.";
+        if (form.birthDate.replace(/\D/g,"").length < 8) errs.birthDate = "생년월일 8자리를 입력해주세요.";
         return errs;
     };
 
@@ -57,7 +59,7 @@ const LoginPage = ({ onLoginSuccess }) => {
         if (Object.keys(errs).length > 0) return;
         setSignupLoading(true);
         try {
-            await signup({ loginId:form.loginId, password:form.password, name:form.name, birthDate:form.birthDate });
+            await signup({ loginId:form.loginId, password:form.password, name:form.name, birthDate:form.birthDate, role:form.role });
             setSignupDone(true);
         } catch (e) { setFormErrors({ general: e.message }); }
         finally { setSignupLoading(false); }
@@ -74,7 +76,7 @@ const LoginPage = ({ onLoginSuccess }) => {
         page:    { minHeight:"100vh", background:"#fff", display:"flex", flexDirection:"column" },
         hero:    { background:"#29D3C4", padding:"48px 24px 36px", display:"flex", flexDirection:"column", alignItems:"center", gap:8 },
         logoEmoji: { fontSize:48 },
-        logo:    { fontSize:28, fontWeight:900, color:"#fff", letterSpacing:-1, fontFamily:"'Black Han Sans', sans-serif" },
+        logo:    { fontSize:28, fontWeight:900, color:"#fff", letterSpacing:-1 },
         sub:     { fontSize:13, color:"rgba(255,255,255,0.85)" },
         tabs:    { display:"flex", borderBottom:"1px solid #eee" },
         tab: (a) => ({ flex:1, padding:"16px 0", textAlign:"center", fontSize:15, fontWeight:a?800:500, color:a?"#29D3C4":"#aaa", borderBottom:a?"2px solid #29D3C4":"2px solid transparent", cursor:"pointer", background:"none", border:"none" }),
@@ -93,15 +95,35 @@ const LoginPage = ({ onLoginSuccess }) => {
         btn: (loading) => ({ width:"100%", padding:"17px", background:loading?"#aaa":"#29D3C4", color:"#fff", border:"none", borderRadius:14, fontSize:16, fontWeight:800, cursor:loading?"not-allowed":"pointer", marginTop:8 }),
         doneWrap:{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", gap:16 },
         doneBtn: { width:"100%", padding:"17px", background:"#29D3C4", color:"#fff", border:"none", borderRadius:14, fontSize:16, fontWeight:800, cursor:"pointer", marginTop:16 },
+        // 역할 선택 카드
+        roleRow: { display:"flex", gap:10, marginTop:2 },
+        roleCard: (active, isOwner) => ({
+            flex:1, padding:"14px 10px", borderRadius:14,
+            border: active ? `2px solid ${isOwner ? "#FF6B35" : "#29D3C4"}` : "2px solid #e8e8e8",
+            background: active ? (isOwner ? "#FFF4EF" : "#EEFBFA") : "#fafafa",
+            cursor:"pointer", textAlign:"center", transition:"all 0.15s",
+        }),
+        roleEmoji: { fontSize:28, display:"block", marginBottom:4 },
+        roleTitle: (active, isOwner) => ({
+            fontSize:14, fontWeight:800,
+            color: active ? (isOwner ? "#FF6B35" : "#29D3C4") : "#555",
+        }),
+        roleSub: { fontSize:11, color:"#aaa", marginTop:2 },
     };
+
+    const isOwner = form.role === "OWNER";
 
     if (signupDone) return (
         <div style={s.page}>
             <div style={s.hero}><div style={s.logo}>배달의민족</div></div>
             <div style={s.doneWrap}>
-                <div style={{ fontSize:64 }}>🎉</div>
+                <div style={{ fontSize:64 }}>{isOwner ? "🏪" : "🎉"}</div>
                 <div style={{ fontSize:22, fontWeight:900, color:"#1A1A1A", textAlign:"center" }}>{form.name}님, 환영합니다!</div>
-                <div style={{ fontSize:14, color:"#888", textAlign:"center", lineHeight:1.6 }}>회원가입이 완료되었어요.{"\n"}지금 로그인하고 맛있는 음식을 만나보세요!</div>
+                <div style={{ fontSize:14, color:"#888", textAlign:"center", lineHeight:1.6 }}>
+                    {form.role === "OWNER"
+                        ? "사장님 계정으로 가입이 완료되었어요.\n로그인 후 가게를 등록해보세요! 🏪"
+                        : "회원가입이 완료되었어요.\n지금 로그인하고 맛있는 음식을 만나보세요!"}
+                </div>
                 <button style={s.doneBtn} onClick={() => { setSignupDone(false); setMode("login"); setLoginId(form.loginId); }}>
                     로그인하러 가기 🛵
                 </button>
@@ -127,7 +149,8 @@ const LoginPage = ({ onLoginSuccess }) => {
                     {loginErr && <div style={s.errBox}>{loginErr}</div>}
                     <div style={s.group}>
                         <label style={s.label}>아이디</label>
-                        <input style={s.input(false)} placeholder="아이디를 입력해주세요" value={loginId} onChange={(e) => setLoginId(e.target.value)} autoComplete="username" />
+                        <input style={s.input(false)} placeholder="아이디를 입력해주세요" value={loginId}
+                               onChange={(e) => setLoginId(e.target.value)} autoComplete="username" />
                     </div>
                     <div style={s.group}>
                         <label style={s.label}>비밀번호</label>
@@ -144,9 +167,10 @@ const LoginPage = ({ onLoginSuccess }) => {
                         {loginLoading ? "로그인 중..." : "로그인"}
                     </button>
                     <div style={{ textAlign:"center" }}>
-            <span style={{ fontSize:13, color:"#888", cursor:"pointer", textDecoration:"underline" }} onClick={() => setMode("signup")}>
-              아직 회원이 아니신가요? 회원가입
-            </span>
+                        <span style={{ fontSize:13, color:"#888", cursor:"pointer", textDecoration:"underline" }}
+                              onClick={() => setMode("signup")}>
+                            아직 회원이 아니신가요? 회원가입
+                        </span>
                     </div>
                 </div>
             )}
@@ -154,11 +178,33 @@ const LoginPage = ({ onLoginSuccess }) => {
             {mode === "signup" && (
                 <div style={s.form}>
                     {formErrors.general && <div style={s.errBox}>{formErrors.general}</div>}
+
+                    {/* 역할 선택 */}
+                    <div style={s.group}>
+                        <label style={s.label}>가입 유형 선택</label>
+                        <div style={s.roleRow}>
+                            <div style={s.roleCard(form.role==="USER", false)}
+                                 onClick={() => setForm(f=>({...f, role:"USER"}))}>
+                                <span style={s.roleEmoji}>🙋</span>
+                                <div style={s.roleTitle(form.role==="USER", false)}>일반 사용자</div>
+                                <div style={s.roleSub}>음식 주문하기</div>
+                            </div>
+                            <div style={s.roleCard(form.role==="OWNER", true)}
+                                 onClick={() => setForm(f=>({...f, role:"OWNER"}))}>
+                                <span style={s.roleEmoji}>🏪</span>
+                                <div style={s.roleTitle(form.role==="OWNER", true)}>사장님</div>
+                                <div style={s.roleSub}>가게 운영하기</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div style={s.group}>
                         <label style={s.label}>아이디</label>
                         <div style={s.row}>
                             <input style={{ ...s.input(!!formErrors.loginId), flex:1 }} placeholder="영문·숫자 4자 이상"
-                                   value={form.loginId} onChange={(e) => { setForm(f=>({...f,loginId:e.target.value})); setIdCheck(null); }} autoComplete="username" />
+                                   value={form.loginId}
+                                   onChange={(e) => { setForm(f=>({...f,loginId:e.target.value})); setIdCheck(null); }}
+                                   autoComplete="username" />
                             <button style={s.checkBtn(idChecking)} onClick={handleCheckId} disabled={idChecking}>
                                 {idChecking ? "확인 중" : "중복확인"}
                             </button>
@@ -170,7 +216,8 @@ const LoginPage = ({ onLoginSuccess }) => {
                         <label style={s.label}>비밀번호</label>
                         <div style={s.inputWrap}>
                             <input style={s.pwInput(!!formErrors.password)} type={showSignupPw?"text":"password"} placeholder="6자 이상"
-                                   value={form.password} onChange={(e) => setForm(f=>({...f,password:e.target.value}))} autoComplete="new-password" />
+                                   value={form.password} onChange={(e) => setForm(f=>({...f,password:e.target.value}))}
+                                   autoComplete="new-password" />
                             <button style={s.eyeBtn} onClick={() => setShowSignupPw(!showSignupPw)}>
                                 {showSignupPw ? <IoEyeOffOutline size={18} color="#aaa" /> : <IoEyeOutline size={18} color="#aaa" />}
                             </button>
@@ -180,7 +227,8 @@ const LoginPage = ({ onLoginSuccess }) => {
                     <div style={s.group}>
                         <label style={s.label}>비밀번호 확인</label>
                         <input style={s.input(!!formErrors.passwordConfirm)} type="password" placeholder="비밀번호 재입력"
-                               value={form.passwordConfirm} onChange={(e) => setForm(f=>({...f,passwordConfirm:e.target.value}))} autoComplete="new-password" />
+                               value={form.passwordConfirm} onChange={(e) => setForm(f=>({...f,passwordConfirm:e.target.value}))}
+                               autoComplete="new-password" />
                         {formErrors.passwordConfirm && <div style={s.err}>{formErrors.passwordConfirm}</div>}
                     </div>
                     <div style={s.group}>
@@ -192,12 +240,13 @@ const LoginPage = ({ onLoginSuccess }) => {
                     <div style={s.group}>
                         <label style={s.label}>생년월일</label>
                         <input style={s.input(!!formErrors.birthDate)} placeholder="예) 1999.01.01"
-                               value={form.birthDate} onChange={(e) => setForm(f=>({...f,birthDate:formatBirth(e.target.value)}))}
+                               value={form.birthDate}
+                               onChange={(e) => setForm(f=>({...f,birthDate:formatBirth(e.target.value)}))}
                                inputMode="numeric" maxLength={10} />
                         {formErrors.birthDate && <div style={s.err}>{formErrors.birthDate}</div>}
                     </div>
                     <button style={s.btn(signupLoading)} onClick={handleSignup} disabled={signupLoading}>
-                        {signupLoading ? "가입 중..." : "가입하기"}
+                        {signupLoading ? "가입 중..." : (form.role==="OWNER" ? "사장님으로 가입하기" : "가입하기")}
                     </button>
                 </div>
             )}

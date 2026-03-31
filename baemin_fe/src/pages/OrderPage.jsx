@@ -25,12 +25,32 @@ const OrderPage = () => {
   useEffect(() => { fetchOrders(); }, []);
 
   const fetchOrders = async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       const res = await orderApi.getMyOrders(0, 20);
-      setOrders(res?.content ?? []);
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
+      // res는 client.js 인터셉터가 data.data를 반환하므로 Page 객체
+      // Page 객체: { content: [], totalElements, totalPages, ... }
+      if (res && Array.isArray(res.content)) {
+        setOrders(res.content);
+      } else if (Array.isArray(res)) {
+        // 혹시 배열로 올 경우 대비
+        setOrders(res);
+      } else {
+        setOrders([]);
+      }
+    } catch (e) {
+      // 401: 토큰 만료 → client.js에서 reload 처리
+      // 403: 권한 없음 (사장님 계정으로 주문내역 조회 시)
+      // 그 외 네트워크 에러
+      if (e.message?.includes("403")) {
+        setError("주문 내역을 조회할 권한이 없습니다.");
+      } else {
+        setError(e.message || "주문 내역을 불러오지 못했습니다.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = async (id) => {
@@ -38,9 +58,14 @@ const OrderPage = () => {
     setCancellingId(id);
     try {
       await orderApi.cancel(id);
-      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "CANCELLED" } : o));
-    } catch (e) { alert(e.message || "취소에 실패했습니다."); }
-    finally { setCancellingId(null); }
+      setOrders((prev) =>
+          prev.map((o) => o.id === id ? { ...o, status: "CANCELLED" } : o)
+      );
+    } catch (e) {
+      alert(e.message || "취소에 실패했습니다.");
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   const st = {
@@ -66,8 +91,10 @@ const OrderPage = () => {
   };
 
   if (loading) return <div style={st.loading}>주문 내역을 불러오는 중... 🛵</div>;
-  if (error)   return (
+
+  if (error) return (
       <div style={st.errWrap}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>😢</div>
         <div style={st.errMsg}>{error}</div>
         <button style={st.retryBtn} onClick={fetchOrders}>다시 시도</button>
       </div>
@@ -76,46 +103,53 @@ const OrderPage = () => {
   return (
       <div style={st.container}>
         <div style={st.heading}>주문내역</div>
+
         {orders.length === 0 ? (
             <div style={st.empty}>
               <IoReceiptOutline size={48} color="#ddd" style={{ marginBottom: 12 }} />
               <div>아직 주문 내역이 없어요</div>
+              <div style={{ fontSize: 12, marginTop: 6, color: "#ccc" }}>첫 주문을 해보세요! 🛵</div>
             </div>
-        ) : orders.map((order) => {
-          const { label, color } = STATUS_MAP[order.status] ?? { label: order.status, color: "#888" };
-          const itemSummary = order.items?.length > 0
-              ? `${order.items[0].menuName}${order.items.length > 1 ? ` 외 ${order.items.length - 1}개` : ""}`
-              : "주문 내역 없음";
+        ) : (
+            orders.map((order) => {
+              const { label, color } = STATUS_MAP[order.status] ?? { label: order.status, color: "#888" };
+              const itemSummary = order.items?.length > 0
+                  ? `${order.items[0].menuName}${order.items.length > 1 ? ` 외 ${order.items.length - 1}개` : ""}`
+                  : "주문 내역 없음";
 
-          return (
-              <div key={order.id} style={st.card}>
-                <div style={st.cardTop}>
-                  <span style={st.storeEmoji}>{order.restaurantEmoji || "🍽️"}</span>
-                  <div style={st.storeMeta}>
-                    <div style={st.storeName}>{order.restaurantName}</div>
-                  </div>
-                  <span style={st.badge(color)}>{label}</span>
-                </div>
-                <div style={st.items}>{itemSummary}</div>
-                <div style={st.meta}>
-                  <span>{formatDate(order.orderedAt)}</span>
-                  <span style={st.price}>{order.finalPrice?.toLocaleString()}원</span>
-                </div>
-                <div style={st.btnRow}>
-                  <button style={st.reorderBtn}>
-                    <IoRefreshOutline size={15} /> 재주문하기
-                  </button>
-                  {order.status === "PENDING" && (
-                      <button style={st.cancelBtn(cancellingId === order.id)}
-                              onClick={() => handleCancel(order.id)} disabled={cancellingId === order.id}>
-                        <IoCloseCircleOutline size={15} />
-                        {cancellingId === order.id ? "취소 중..." : "주문취소"}
+              return (
+                  <div key={order.id} style={st.card}>
+                    <div style={st.cardTop}>
+                      <span style={st.storeEmoji}>{order.restaurantEmoji || "🍽️"}</span>
+                      <div style={st.storeMeta}>
+                        <div style={st.storeName}>{order.restaurantName}</div>
+                      </div>
+                      <span style={st.badge(color)}>{label}</span>
+                    </div>
+                    <div style={st.items}>{itemSummary}</div>
+                    <div style={st.meta}>
+                      <span>{formatDate(order.orderedAt)}</span>
+                      <span style={st.price}>{order.finalPrice?.toLocaleString()}원</span>
+                    </div>
+                    <div style={st.btnRow}>
+                      <button style={st.reorderBtn}>
+                        <IoRefreshOutline size={15} /> 재주문하기
                       </button>
-                  )}
-                </div>
-              </div>
-          );
-        })}
+                      {order.status === "PENDING" && (
+                          <button
+                              style={st.cancelBtn(cancellingId === order.id)}
+                              onClick={() => handleCancel(order.id)}
+                              disabled={cancellingId === order.id}
+                          >
+                            <IoCloseCircleOutline size={15} />
+                            {cancellingId === order.id ? "취소 중..." : "주문취소"}
+                          </button>
+                      )}
+                    </div>
+                  </div>
+              );
+            })
+        )}
       </div>
   );
 };

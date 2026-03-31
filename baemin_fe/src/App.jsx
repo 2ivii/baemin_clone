@@ -2,38 +2,27 @@ import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
 
-import Header          from './components/Header';
-import BottomNav       from './components/BottomNav';
-import CartModal       from './components/CartModal';
-import HomePage        from './pages/HomePage';
-import FavoritePage    from './pages/FavoritePage';
-import OrderPage       from './pages/OrderPage';
-import MyPage          from './pages/MyPage';
+import Header               from './components/Header';
+import BottomNav            from './components/BottomNav';
+import CartModal            from './components/CartModal';
+import HomePage             from './pages/HomePage';
+import FavoritePage         from './pages/FavoritePage';
+import OrderPage            from './pages/OrderPage';
+import MyPage               from './pages/MyPage';
 import RestaurantDetailPage from './pages/RestaurantDetailPage';
-import CouponPage      from './pages/CouponPage';
-import MyReviewPage    from './pages/MyReviewPage';
-import AddressSettingPage from './pages/AddressSettingPage';
-import AddressEditPage from './pages/AddressEditPage';
-import LoginPage       from './pages/LoginPage';
+import CouponPage           from './pages/CouponPage';
+import MyReviewPage         from './pages/MyReviewPage';
+import AddressSettingPage   from './pages/AddressSettingPage';
+import AddressEditPage      from './pages/AddressEditPage';
+import LoginPage            from './pages/LoginPage';
+import OwnerDashboard       from './pages/owner/OwnerDashboard';
 
-/* ── 인증이 필요한 앱 본체 ── */
-const AppInner = () => {
-    const { isLoggedIn, user, logout } = useAuth();
+const UserApp = ({ user, logout }) => {
     const { cartCount } = useCart();
-
     const [activeTab, setActiveTab]               = useState('home');
     const [showCart, setShowCart]                 = useState(false);
     const [selectedRestaurant, setSelectedRestaurant] = useState(null);
     const [subPage, setSubPage]                   = useState(null);
-
-    /* 로그인 전 → LoginPage */
-    if (!isLoggedIn) {
-        return (
-            <div style={{ maxWidth:430, margin:'0 auto', minHeight:'100vh', fontFamily:"'Noto Sans KR', sans-serif" }}>
-                <LoginPage onLoginSuccess={() => {}} />
-            </div>
-        );
-    }
 
     const handleTabChange = (tab) => {
         setSelectedRestaurant(null);
@@ -41,7 +30,6 @@ const AppInner = () => {
         setActiveTab(tab);
     };
 
-    /** 주문 완료 콜백 → 주문내역 탭으로 이동 */
     const handleOrderSuccess = () => {
         setShowCart(false);
         setSelectedRestaurant(null);
@@ -53,7 +41,6 @@ const AppInner = () => {
     const isSub      = !!subPage;
     const hideChrome = isDetail || isSub;
 
-    /* ── 페이지 렌더 ── */
     const renderPage = () => {
         if (subPage === 'coupon')          return <CouponPage />;
         if (subPage === 'myreview')        return <MyReviewPage onBack={() => setSubPage(null)} />;
@@ -117,6 +104,24 @@ const AppInner = () => {
             )}
         </div>
     );
+};
+
+const AppInner = () => {
+    const { isLoggedIn, user, logout } = useAuth();
+
+    if (!isLoggedIn) {
+        return (
+            <div style={{ maxWidth:430, margin:'0 auto', minHeight:'100vh', fontFamily:"'Noto Sans KR', sans-serif" }}>
+                <LoginPage onLoginSuccess={() => {}} />
+            </div>
+        );
+    }
+
+    if (user?.role === 'OWNER') {
+        return <OwnerDashboard user={user} onLogout={logout} />;
+    }
+
+    return <UserApp user={user} logout={logout} />;
 };
 
 const App = () => (
