@@ -1,79 +1,189 @@
-import { IoAddCircleOutline, IoPencilOutline, IoRestaurantOutline, IoToggle, IoToggleOutline, IoTrashOutline } from "react-icons/io5";
+import { useState, useEffect } from "react";
+import { IoArrowBack, IoCheckmarkCircle } from "react-icons/io5";
+import { ownerApi } from "../../api/ownerApi";
+import { restaurantApi } from "../../api/restaurantApi";
 
-const OwnerRestaurantList = ({ restaurants, loading, onAdd, onEdit, onMenus, onToggle, onDelete }) => {
-    const s = {
-        page:   { paddingBottom: 80 },
-        topBar: { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 16px 8px" },
-        title:  { fontSize:20, fontWeight:900, color:"#1A1A1A" },
-        addBtn: { background:"linear-gradient(135deg,#FF6B35,#FF8C42)", color:"#fff", border:"none", borderRadius:12, padding:"10px 16px", fontSize:13, fontWeight:800, cursor:"pointer", display:"flex", alignItems:"center", gap:6 },
-        card:   { background:"#fff", borderRadius:16, padding:"16px", margin:"0 16px 12px", boxShadow:"0 2px 8px rgba(0,0,0,0.06)" },
-        top:    { display:"flex", gap:12, alignItems:"center", marginBottom:14 },
-        emoji:  (bg) => ({ width:56, height:56, borderRadius:14, background:bg||"#F5F5F5", display:"flex", alignItems:"center", justifyContent:"center", fontSize:30, flexShrink:0 }),
-        info:   { flex:1 },
-        name:   { fontSize:16, fontWeight:800, color:"#1A1A1A" },
-        meta:   { fontSize:12, color:"#888", marginTop:3, lineHeight:1.5 },
-        badge: (open) => ({ fontSize:11, fontWeight:700, color:open?"#29D3C4":"#999", background:open?"#E8FAF8":"#f0f0f0", padding:"3px 10px", borderRadius:20, alignSelf:"flex-start" }),
-        actions:{ display:"flex", gap:8 },
-        btn:    (bg, color) => ({ flex:1, padding:"9px 0", background:bg, color, border:"none", borderRadius:10, fontSize:12, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:4 }),
-        empty:  { textAlign:"center", padding:"60px 16px" },
+const EMOJI_OPTIONS = ["🍗","🍕","🍜","🍣","🍔","🥗","🥩","☕","🍱","🌮","🍚","🍛","🥘","🍲","🍞","🥪","🍙","🍘","🥞","🍳","🍽️"];
+const BG_OPTIONS    = ["#FFF3CD","#FFE4E4","#E4F5E4","#E4E8FF","#FFE8D6","#E8F4FD","#FFF0EB","#EEFBFA","#F5F0FF","#F5F5F5"];
+
+const emptyForm = {
+    name: "",
+    categoryName: "",
+    imgEmoji: "🍽️",
+    bgColor: "#FFF3CD",
+    deliveryTime: "30~40분",
+    ownerNotice: "",
+    minOrder: 0,
+    deliveryFee: 0,
+};
+
+const OwnerRestaurantForm = ({ restaurant, onBack, onSaved }) => {
+    const isEdit = !!restaurant;
+    const [form, setForm]       = useState(isEdit ? {
+        name:         restaurant.name,
+        categoryName: restaurant.category?.name || "",
+        imgEmoji:     restaurant.imgEmoji || "🍽️",
+        bgColor:      restaurant.bgColor  || "#FFF3CD",
+        deliveryTime: restaurant.deliveryTime || "30~40분",
+        ownerNotice:  restaurant.ownerNotice || "",
+        minOrder:     restaurant.minOrder || 0,
+        deliveryFee:  restaurant.deliveryFee || 0,
+    } : emptyForm);
+    const [categories, setCategories] = useState([]);
+    const [saving, setSaving]   = useState(false);
+    const [saved, setSaved]     = useState(false);
+    const [formErr, setFormErr] = useState(null);
+
+    useEffect(() => {
+        restaurantApi.getCategories()
+            .then(setCategories)
+            .catch(() => setCategories([]));
+    }, []);
+
+    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+    const handleSave = async () => {
+        if (!form.name.trim())         { setFormErr("가게 이름을 입력해주세요."); return; }
+        if (!form.categoryName.trim()) { setFormErr("카테고리를 선택해주세요."); return; }
+        setSaving(true); setFormErr(null);
+        try {
+            if (isEdit) await ownerApi.updateRestaurant(restaurant.id, form);
+            else        await ownerApi.createRestaurant(form);
+            setSaved(true);
+            setTimeout(() => { setSaved(false); onSaved(); }, 1000);
+        } catch (e) {
+            setFormErr(e.message || "저장에 실패했습니다.");
+        } finally {
+            setSaving(false);
+        }
     };
 
-    if (loading) return <div style={{ textAlign:"center", padding:"60px 0", color:"#aaa" }}>로딩 중...</div>;
+    const s = {
+        page:    { background: "#fff", minHeight: "100vh", paddingBottom: 40 },
+        topBar:  { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 16px", borderBottom:"1px solid #f0f0f0", position:"sticky", top:0, background:"#fff", zIndex:10 },
+        back:    { background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center", padding:4 },
+        topTitle:{ fontSize:17, fontWeight:800, color:"#1A1A1A" },
+        ph:      { width:30 },
+        body:    { padding:"20px 16px" },
+        preview: { display:"flex", alignItems:"center", gap:14, padding:"16px", borderRadius:14, marginBottom:24 },
+        previewEmoji: { fontSize:44 },
+        previewName:  { fontSize:17, fontWeight:800, color:"#1A1A1A" },
+        previewMeta:  { fontSize:12, color:"#888", marginTop:3 },
+        group:   { marginBottom:20 },
+        label:   { fontSize:12, fontWeight:700, color:"#555", marginBottom:6, display:"block" },
+        input:   (err) => ({ width:"100%", padding:"13px 14px", borderRadius:11, border:`1.5px solid ${err?"#FF3B30":"#e8e8e8"}`, fontSize:14, color:"#1A1A1A", outline:"none", background:"#fafafa", boxSizing:"border-box" }),
+        select:  (err) => ({ width:"100%", padding:"13px 14px", borderRadius:11, border:`1.5px solid ${err?"#FF3B30":"#e8e8e8"}`, fontSize:14, color:"#1A1A1A", outline:"none", background:"#fafafa", boxSizing:"border-box", appearance:"none" }),
+        row:     { display:"flex", gap:12 },
+        emojiGrid: { display:"flex", flexWrap:"wrap", gap:6 },
+        emojiBtn:  (sel) => ({ width:44, height:44, borderRadius:10, border:sel?"2px solid #FF6B35":"2px solid #eee", background:sel?"#FFF0EB":"#fff", fontSize:22, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }),
+        bgGrid:  { display:"flex", flexWrap:"wrap", gap:8 },
+        bgBtn:   (sel) => ({ width:36, height:36, borderRadius:8, border:sel?"3px solid #FF6B35":"3px solid transparent", cursor:"pointer", outline:"none" }),
+        errBox:  { background:"#FFF0F0", border:"1px solid #FFD0D0", borderRadius:9, padding:"10px 12px", fontSize:12, color:"#FF3B30", marginBottom:16 },
+        saveBtn: (d) => ({ width:"100%", padding:"16px", background:d?"#aaa":"linear-gradient(135deg,#FF6B35,#FF8C42)", color:"#fff", border:"none", borderRadius:13, fontSize:15, fontWeight:800, cursor:d?"not-allowed":"pointer", marginTop:8 }),
+        savedMsg:{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"20px", fontSize:15, fontWeight:700, color:"#FF6B35" },
+    };
 
     return (
         <div style={s.page}>
             <div style={s.topBar}>
-                <span style={s.title}>내 가게 ({restaurants.length})</span>
-                <button style={s.addBtn} onClick={onAdd}>
-                    <IoAddCircleOutline size={16} /> 가게 추가
-                </button>
+                <button style={s.back} onClick={onBack}><IoArrowBack size={22} color="#1A1A1A" /></button>
+                <span style={s.topTitle}>{isEdit ? "가게 수정" : "가게 등록"}</span>
+                <div style={s.ph} />
             </div>
 
-            {restaurants.length === 0 ? (
-                <div style={s.empty}>
-                    <div style={{ fontSize:56 }}>🏪</div>
-                    <div style={{ fontSize:16, fontWeight:700, color:"#555", marginTop:12 }}>등록된 가게가 없어요</div>
-                    <div style={{ fontSize:13, color:"#aaa", marginTop:4, marginBottom:16 }}>첫 번째 가게를 등록해보세요!</div>
-                    <button style={{ background:"linear-gradient(135deg,#FF6B35,#FF8C42)", color:"#fff", border:"none", borderRadius:12, padding:"12px 24px", fontSize:14, fontWeight:800, cursor:"pointer" }} onClick={onAdd}>
-                        가게 등록하기
-                    </button>
-                </div>
-            ) : restaurants.map((r) => (
-                <div key={r.id} style={s.card}>
-                    <div style={s.top}>
-                        <div style={s.emoji(r.bgColor)}>{r.imgEmoji || "🍽️"}</div>
-                        <div style={s.info}>
-                            <div style={s.name}>{r.name}</div>
-                            <div style={s.meta}>
-                                {r.category?.name} · 최소 {r.minOrder?.toLocaleString()}원 · 배달비 {r.deliveryFee === 0 ? "무료" : `${r.deliveryFee?.toLocaleString()}원`}
-                            </div>
-                            <div style={s.meta}>{r.deliveryTime}</div>
-                        </div>
-                        <span style={s.badge(r.open)}>{r.open ? "영업중" : "영업종료"}</span>
+            <div style={s.body}>
+                {/* 미리보기 */}
+                <div style={{ ...s.preview, background: form.bgColor }}>
+                    <span style={s.previewEmoji}>{form.imgEmoji}</span>
+                    <div>
+                        <div style={s.previewName}>{form.name || "가게 이름"}</div>
+                        <div style={s.previewMeta}>{form.categoryName || "카테고리"} · 최소 {Number(form.minOrder).toLocaleString()}원</div>
                     </div>
+                </div>
 
-                    <div style={s.actions}>
-                        <button style={s.btn("#FFF0EB","#FF6B35")} onClick={() => onEdit(r)}>
-                            <IoPencilOutline size={13} /> 수정
-                        </button>
-                        <button style={s.btn("#EEFBFA","#29D3C4")} onClick={() => onMenus(r)}>
-                            <IoRestaurantOutline size={13} /> 메뉴 ({r.menuCount || 0})
-                        </button>
-                        <button style={s.btn(r.open?"#f5f5f5":"#E8FAF8", r.open?"#999":"#29D3C4")} onClick={() => onToggle(r.id)}>
-                            {r.open ? <IoToggle size={16} color="#29D3C4" /> : <IoToggleOutline size={16} />}
-                            {r.open ? "마감" : "오픈"}
-                        </button>
-                        <button style={s.btn("#FFF0F0","#FF3B30")} onClick={async () => {
-                            if (!window.confirm("가게를 삭제하시겠어요? 메뉴도 모두 삭제됩니다.")) return;
-                            try { await onDelete(r.id); } catch(e) { alert(e.message || "삭제 실패"); }
-                        }}>
-                            <IoTrashOutline size={13} />
-                        </button>
+                {saved ? (
+                    <div style={s.savedMsg}>
+                        <IoCheckmarkCircle size={26} color="#FF6B35" />
+                        {isEdit ? "수정이 완료되었어요!" : "가게가 등록되었어요!"}
                     </div>
-                </div>
-            ))}
+                ) : (
+                    <>
+                        {formErr && <div style={s.errBox}>{formErr}</div>}
+
+                        <div style={s.group}>
+                            <label style={s.label}>가게 이름 *</label>
+                            <input style={s.input(!form.name)} value={form.name}
+                                   onChange={e => set("name", e.target.value)} placeholder="예) 굽네치킨 마포점" />
+                        </div>
+
+                        <div style={s.group}>
+                            <label style={s.label}>카테고리 *</label>
+                            <select style={s.select(!form.categoryName)} value={form.categoryName}
+                                    onChange={e => set("categoryName", e.target.value)}>
+                                <option value="">카테고리 선택</option>
+                                {categories.map(c => (
+                                    <option key={c.id} value={c.name || c.label}>{c.icon} {c.name || c.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ ...s.group }}>
+                            <div style={s.row}>
+                                <div style={{ flex:1 }}>
+                                    <label style={s.label}>최소 주문금액 (원)</label>
+                                    <input style={{ ...s.input(false), textAlign:"right" }} type="number" value={form.minOrder}
+                                           onChange={e => set("minOrder", Number(e.target.value))} placeholder="0" />
+                                </div>
+                                <div style={{ flex:1 }}>
+                                    <label style={s.label}>배달비 (원)</label>
+                                    <input style={{ ...s.input(false), textAlign:"right" }} type="number" value={form.deliveryFee}
+                                           onChange={e => set("deliveryFee", Number(e.target.value))} placeholder="0" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={s.group}>
+                            <label style={s.label}>배달 예상 시간</label>
+                            <input style={s.input(false)} value={form.deliveryTime}
+                                   onChange={e => set("deliveryTime", e.target.value)} placeholder="예) 30~40분" />
+                        </div>
+
+                        <div style={s.group}>
+                            <label style={s.label}>가게 아이콘</label>
+                            <div style={s.emojiGrid}>
+                                {EMOJI_OPTIONS.map(e => (
+                                    <button key={e} style={s.emojiBtn(form.imgEmoji === e)}
+                                            onClick={() => set("imgEmoji", e)}>{e}</button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={s.group}>
+                            <label style={s.label}>배경 색상</label>
+                            <div style={s.bgGrid}>
+                                {BG_OPTIONS.map(bg => (
+                                    <button key={bg} style={{ ...s.bgBtn(form.bgColor === bg), background: bg }}
+                                            onClick={() => set("bgColor", bg)} />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={s.group}>
+                            <label style={s.label}>사장님 공지 (선택)</label>
+                            <textarea style={{ ...s.input(false), resize:"vertical", minHeight:80, fontFamily:"inherit" }}
+                                      value={form.ownerNotice}
+                                      onChange={e => set("ownerNotice", e.target.value)}
+                                      placeholder="고객에게 전달할 공지사항을 입력해주세요" />
+                        </div>
+
+                        <button style={s.saveBtn(saving)} onClick={handleSave} disabled={saving}>
+                            {saving ? "저장 중..." : (isEdit ? "수정 완료" : "가게 등록하기")}
+                        </button>
+                    </>
+                )}
+            </div>
         </div>
     );
 };
 
-export default OwnerRestaurantList;
+export default OwnerRestaurantForm;
