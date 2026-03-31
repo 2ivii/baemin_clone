@@ -1,6 +1,22 @@
-import { categories } from "../data/mockData";
+import { useState, useEffect } from "react";
+import { restaurantApi } from "../api/restaurantApi";
+import { categories as mockCategories } from "../data/mockData";
 
 const CategoryGrid = ({ selected, onSelect }) => {
+  const [categories, setCategories] = useState(mockCategories);
+
+  useEffect(() => {
+    restaurantApi.getCategories()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setCategories(data);
+          }
+        })
+        .catch(() => {
+          // mockData 유지
+        });
+  }, []);
+
   const styles = {
     title: {
       padding: "12px 16px 8px",
@@ -36,24 +52,24 @@ const CategoryGrid = ({ selected, onSelect }) => {
   };
 
   return (
-    <>
-      <div style={styles.title}>카테고리</div>
-      <div style={styles.grid}>
-        {categories.map((cat) => {
-          const active = selected === cat.label;
-          return (
-            <div
-              key={cat.id}
-              style={styles.item(active)}
-              onClick={() => onSelect(active ? null : cat.label)}
-            >
-              <span style={styles.icon}>{cat.icon}</span>
-              <span style={styles.label(active)}>{cat.label}</span>
-            </div>
-          );
-        })}
-      </div>
-    </>
+      <>
+        <div style={styles.title}>카테고리</div>
+        <div style={styles.grid}>
+          {categories.map((cat) => {
+            const active = selected === cat.label || selected === cat.name;
+            return (
+                <div
+                    key={cat.id}
+                    style={styles.item(active)}
+                    onClick={() => onSelect(active ? null : (cat.label || cat.name))}
+                >
+                  <span style={styles.icon}>{cat.icon}</span>
+                  <span style={styles.label(active)}>{cat.label || cat.name}</span>
+                </div>
+            );
+          })}
+        </div>
+      </>
   );
 };
 
