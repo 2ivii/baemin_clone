@@ -5,13 +5,27 @@ import FilterChips from '../components/FilterChips';
 import RestaurantCard from '../components/RestaurantCard';
 import SearchBar from '../components/SearchBar';
 import { restaurantApi } from '../api/restaurantApi';
+import { favoriteApi } from '../api/favoriteApi';
 import { restaurants as mockRestaurants } from '../data/mockData';
 
 const HomePage = ({ onSelectRestaurant }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [likedRestaurants, setLikedRestaurants] = useState(new Set([1, 3]));
+  const [likedRestaurants, setLikedRestaurants] = useState(new Set());
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 찜 목록 로드
+  useEffect(() => {
+    favoriteApi.getIds()
+        .then((ids) => {
+          // ids는 Set 또는 Array로 올 수 있음
+          setLikedRestaurants(new Set(Array.isArray(ids) ? ids : Object.values(ids)));
+        })
+        .catch(() => {
+          // 로그인 전이거나 실패 시 빈 Set
+          setLikedRestaurants(new Set());
+        });
+  }, []);
 
   useEffect(() => {
     fetchRestaurants(selectedCategory);
@@ -21,7 +35,6 @@ const HomePage = ({ onSelectRestaurant }) => {
     setLoading(true);
     try {
       const data = await restaurantApi.getList(category);
-      // 백엔드 응답을 프론트 형식으로 변환
       const mapped = data.map((r) => ({
         id:           r.id,
         name:         r.name,
@@ -37,7 +50,6 @@ const HomePage = ({ onSelectRestaurant }) => {
       }));
       setRestaurants(mapped.length > 0 ? mapped : mockRestaurants);
     } catch {
-      // API 실패 시 mockData 폴백
       setRestaurants(
           category
               ? mockRestaurants.filter((r) => r.category === category)
@@ -48,12 +60,24 @@ const HomePage = ({ onSelectRestaurant }) => {
     }
   };
 
-  const toggleLike = (id) => {
+  const toggleLike = async (id) => {
+    // 낙관적 업데이트: 먼저 UI 반영
     setLikedRestaurants((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+
+    try {
+      await favoriteApi.toggle(id);
+    } catch {
+      // 실패 시 롤백
+      setLikedRestaurants((prev) => {
+        const next = new Set(prev);
+        next.has(id) ? next.delete(id) : next.add(id);
+        return next;
+      });
+    }
   };
 
   const styles = {

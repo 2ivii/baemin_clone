@@ -1,9 +1,20 @@
 import { useState } from "react";
+import { useCart } from "../context/CartContext";
 
-const MenuDetailModal = ({ menu, restaurant, onClose, onAddToCart }) => {
+const MenuDetailModal = ({ menu, restaurant, onClose }) => {
   const [qty, setQty] = useState(1);
+  const { addToCart } = useCart();
 
   const totalPrice = menu.price * qty;
+
+  const handleAddToCart = () => {
+    addToCart(
+        { id: menu.id, name: menu.name, price: menu.price },
+        qty,
+        restaurant
+    );
+    onClose();
+  };
 
   const s = {
     overlay: {
@@ -93,20 +104,6 @@ const MenuDetailModal = ({ menu, restaurant, onClose, onAddToCart }) => {
       lineHeight: 1.6,
       marginBottom: 4,
     },
-    descToggle: {
-      width: 28,
-      height: 28,
-      borderRadius: "50%",
-      border: "1px solid #ddd",
-      background: "#fff",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      fontSize: 14,
-      marginLeft: "auto",
-      marginTop: 4,
-    },
     reviewLink: {
       display: "flex",
       alignItems: "center",
@@ -186,15 +183,8 @@ const MenuDetailModal = ({ menu, restaurant, onClose, onAddToCart }) => {
       padding: "12px 16px 20px",
       borderTop: "1px solid #f0f0f0",
     },
-    minOrder: {
-      fontSize: 11,
-      color: "#888",
-    },
-    minOrderVal: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#555",
-    },
+    minOrder: { fontSize: 11, color: "#888" },
+    minOrderVal: { fontSize: 12, fontWeight: 700, color: "#555" },
     addBtn: {
       flex: 1,
       marginLeft: 16,
@@ -210,71 +200,67 @@ const MenuDetailModal = ({ menu, restaurant, onClose, onAddToCart }) => {
   };
 
   return (
-    <>
-      <div style={s.overlay} onClick={onClose} />
-      <div style={s.sheet}>
-        {/* Hero */}
-        <div style={{ ...s.heroArea, background: menu.bg }}>
-          <span>{menu.emoji}</span>
-          <button style={s.backBtn} onClick={onClose}>←</button>
-          <div style={s.topRightBtns}>
-            <button style={s.topBtn}>⬆</button>
-            <button style={s.topBtn}>🔍</button>
-            <button style={s.topBtn}>🛒</button>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div style={s.body}>
-          <div style={s.tagRow}>
-            <span style={s.tag("#888")}>{menu.rank}</span>
-            {menu.ownerPick && <span style={s.tag("#29D3C4")}>사장님 추천</span>}
-          </div>
-          <div style={s.menuName}>{menu.name}</div>
-          <div style={s.descBlock}>{menu.desc}</div>
-          <button style={s.descToggle}>⌄</button>
-
-          <div style={s.reviewLink}>
-            메뉴 리뷰 {menu.reviews}개 <span style={{ marginLeft: "auto" }}>›</span>
-          </div>
-
-          <div style={s.priceRow}>
-            <span style={s.priceLabel}>가격</span>
-            <span style={s.priceValue}>{menu.price.toLocaleString()}원</span>
-          </div>
-
-          <div style={s.qtyRow}>
-            <span style={s.qtyLabel}>수량</span>
-            <div style={s.qtyControl}>
-              <button style={s.qtyBtn} onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
-              <span style={s.qtyNum}>{qty}개</span>
-              <button style={s.qtyBtn} onClick={() => setQty(qty + 1)}>+</button>
+      <>
+        <div style={s.overlay} onClick={onClose} />
+        <div style={s.sheet}>
+          {/* Hero */}
+          <div style={{ ...s.heroArea, background: menu.bg }}>
+            <span>{menu.emoji}</span>
+            <button style={s.backBtn} onClick={onClose}>←</button>
+            <div style={s.topRightBtns}>
+              <button style={s.topBtn}>⬆</button>
+              <button style={s.topBtn}>🔍</button>
+              <button style={s.topBtn}>🛒</button>
             </div>
           </div>
-        </div>
 
-        <div style={s.notice}>
-          <div style={s.noticeText}>
-            메뉴 사진은 연출된 이미지로 실제 조리된 음식과 다를 수 있어요.{"\n"}
-            메뉴 정보와 관련된 의견이 있다면 의견 보내기 버튼을 눌러주세요.
-          </div>
-          <div style={s.noticeLink}>의견 보내기 ›</div>
-        </div>
+          {/* Body */}
+          <div style={s.body}>
+            <div style={s.tagRow}>
+              <span style={s.tag("#888")}>{menu.rank}</span>
+              {menu.ownerPick && <span style={s.tag("#29D3C4")}>사장님 추천</span>}
+            </div>
+            <div style={s.menuName}>{menu.name}</div>
+            <div style={s.descBlock}>{menu.desc}</div>
 
-        <div style={s.bottomBar}>
-          <div>
-            <div style={s.minOrder}>배달 최소주문금액</div>
-            <div style={s.minOrderVal}>{restaurant.minOrder}</div>
+            <div style={s.reviewLink}>
+              메뉴 리뷰 {menu.reviews}개 <span style={{ marginLeft: "auto" }}>›</span>
+            </div>
+
+            <div style={s.priceRow}>
+              <span style={s.priceLabel}>가격</span>
+              <span style={s.priceValue}>{menu.price.toLocaleString()}원</span>
+            </div>
+
+            <div style={s.qtyRow}>
+              <span style={s.qtyLabel}>수량</span>
+              <div style={s.qtyControl}>
+                <button style={s.qtyBtn} onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
+                <span style={s.qtyNum}>{qty}개</span>
+                <button style={s.qtyBtn} onClick={() => setQty(qty + 1)}>+</button>
+              </div>
+            </div>
           </div>
-          <button
-            style={s.addBtn}
-            onClick={() => onAddToCart({ id: menu.id, name: menu.name, price: menu.price }, qty)}
-          >
-            {totalPrice.toLocaleString()}원 담기
-          </button>
+
+          <div style={s.notice}>
+            <div style={s.noticeText}>
+              메뉴 사진은 연출된 이미지로 실제 조리된 음식과 다를 수 있어요.{"\n"}
+              메뉴 정보와 관련된 의견이 있다면 의견 보내기 버튼을 눌러주세요.
+            </div>
+            <div style={s.noticeLink}>의견 보내기 ›</div>
+          </div>
+
+          <div style={s.bottomBar}>
+            <div>
+              <div style={s.minOrder}>배달 최소주문금액</div>
+              <div style={s.minOrderVal}>{restaurant?.minOrder || "0원"}</div>
+            </div>
+            <button style={s.addBtn} onClick={handleAddToCart}>
+              {totalPrice.toLocaleString()}원 담기
+            </button>
+          </div>
         </div>
-      </div>
-    </>
+      </>
   );
 };
 

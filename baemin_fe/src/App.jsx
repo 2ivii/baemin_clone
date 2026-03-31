@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CartProvider, useCart } from './context/CartContext';
 
 import Header          from './components/Header';
 import BottomNav       from './components/BottomNav';
@@ -14,14 +15,13 @@ import MyReviewPage    from './pages/MyReviewPage';
 import AddressSettingPage from './pages/AddressSettingPage';
 import AddressEditPage from './pages/AddressEditPage';
 import LoginPage       from './pages/LoginPage';
-import { initialCartItems } from './data/mockData';
 
 /* ── 인증이 필요한 앱 본체 ── */
 const AppInner = () => {
     const { isLoggedIn, user, logout } = useAuth();
+    const { cartCount } = useCart();
 
     const [activeTab, setActiveTab]               = useState('home');
-    const [cart, setCart]                         = useState(initialCartItems);
     const [showCart, setShowCart]                 = useState(false);
     const [selectedRestaurant, setSelectedRestaurant] = useState(null);
     const [subPage, setSubPage]                   = useState(null);
@@ -35,28 +35,20 @@ const AppInner = () => {
         );
     }
 
-    /* ── 카트 핸들러 ── */
-    const handleUpdateQty = (id, delta) =>
-        setCart(prev =>
-            prev.map(item => item.id === id ? { ...item, qty: item.qty + delta } : item)
-                .filter(item => item.qty > 0)
-        );
-
-    const handleAddToCart = (item, qty) =>
-        setCart(prev => {
-            const existing = prev.find(c => c.id === item.id);
-            return existing
-                ? prev.map(c => c.id === item.id ? { ...c, qty: c.qty + qty } : c)
-                : [...prev, { ...item, qty }];
-        });
-
     const handleTabChange = (tab) => {
         setSelectedRestaurant(null);
         setSubPage(null);
         setActiveTab(tab);
     };
 
-    const cartCount  = cart.reduce((s, i) => s + i.qty, 0);
+    /** 주문 완료 콜백 → 주문내역 탭으로 이동 */
+    const handleOrderSuccess = () => {
+        setShowCart(false);
+        setSelectedRestaurant(null);
+        setSubPage(null);
+        setActiveTab('order');
+    };
+
     const isDetail   = !!selectedRestaurant;
     const isSub      = !!subPage;
     const hideChrome = isDetail || isSub;
@@ -73,7 +65,7 @@ const AppInner = () => {
             <RestaurantDetailPage
                 restaurant={selectedRestaurant}
                 onBack={() => setSelectedRestaurant(null)}
-                onAddToCart={handleAddToCart}
+                onCartClick={() => setShowCart(true)}
             />
         );
         switch (activeTab) {
@@ -119,10 +111,8 @@ const AppInner = () => {
             {!hideChrome && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
             {showCart && (
                 <CartModal
-                    cart={cart}
-                    restaurant={selectedRestaurant}
                     onClose={() => setShowCart(false)}
-                    onUpdateQty={handleUpdateQty}
+                    onOrderSuccess={handleOrderSuccess}
                 />
             )}
         </div>
@@ -133,7 +123,9 @@ const App = () => (
     <>
         <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <AuthProvider>
-            <AppInner />
+            <CartProvider>
+                <AppInner />
+            </CartProvider>
         </AuthProvider>
     </>
 );

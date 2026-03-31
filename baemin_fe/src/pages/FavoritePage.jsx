@@ -1,14 +1,37 @@
-import { useState } from "react";
-import { IoSearchOutline, IoBagOutline, IoStar, IoBicycleOutline, IoTimeOutline } from "react-icons/io5";
-import { MdVerified } from "react-icons/md";
-import { restaurants } from "../data/mockData";
+import { useState, useEffect } from "react";
+import { IoSearchOutline, IoBagOutline, IoStar, IoBicycleOutline, IoHeartDislikeOutline } from "react-icons/io5";
+import { favoriteApi } from "../api/favoriteApi";
 
 const FavoritePage = ({ onSelectRestaurant }) => {
   const [activeTab, setActiveTab] = useState("delivery");
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const items = [
-    { id: 1, name: "옐로우파스타 일산점",          emoji: "🍝", bg: "#FFF3CD", rating: 4.9, reviewCount: 486, topMenu: "(솔로세트) 나혼자 옐로우파스타 세트(...", time: "약 53분", deliveryFree: true,  minOrder: "5,000원",  chips: ["픽업가능","예약가능"], club: true, unavailable: false },
-  ];
+  useEffect(() => {
+    fetchFavorites();
+  }, []);
+
+  const fetchFavorites = async () => {
+    setLoading(true);
+    try {
+      const data = await favoriteApi.getAll();
+      setFavorites(data || []);
+    } catch {
+      setFavorites([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUnlike = async (e, restaurantId) => {
+    e.stopPropagation();
+    try {
+      await favoriteApi.toggle(restaurantId);
+      setFavorites((prev) => prev.filter((f) => f.restaurantId !== restaurantId));
+    } catch {
+      alert("찜 해제에 실패했습니다.");
+    }
+  };
 
   const s = {
     page:   { background: "#fff", minHeight: "100vh" },
@@ -19,19 +42,83 @@ const FavoritePage = ({ onSelectRestaurant }) => {
     tabs:   { display: "flex", borderBottom: "1px solid #eee" },
     tab: (a) => ({ flex: 1, textAlign: "center", padding: "14px 0", fontSize: 15, fontWeight: a?800:500, color: a?"#1A1A1A":"#aaa", borderBottom: a?"2px solid #1A1A1A":"2px solid transparent", cursor: "pointer", background: "none", border: "none" }),
     count:  { padding: "14px 16px 8px", fontSize: 13, color: "#555", fontWeight: 600 },
-    item:   { display: "flex", gap: 14, padding: "16px 16px", borderBottom: "1px solid #F5F5F5", cursor: "pointer", alignItems: "flex-start" },
+    item:   { display: "flex", gap: 14, padding: "16px", borderBottom: "1px solid #F5F5F5", cursor: "pointer", alignItems: "flex-start" },
     imgWrap:{ position: "relative", flexShrink: 0 },
-    img: (bg) => ({ width: 90, height: 90, borderRadius: 10, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44, position: "relative", overflow: "hidden" }),
-    discBadge: { position: "absolute", bottom: 0, left: 0, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 6px", borderRadius: "0 6px 0 8px" },
+    img: (bg) => ({ width: 90, height: 90, borderRadius: 10, background: bg || "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44 }),
     info:   { flex: 1 },
-    name:   { fontSize: 16, fontWeight: 800, color: "#1A1A1A", marginBottom: 3 },
+    name:   { fontSize: 16, fontWeight: 800, color: "#1A1A1A", marginBottom: 4 },
     ratingRow: { display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "#555", marginBottom: 4 },
     delivRow:  { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", marginBottom: 4 },
-    freeDeliv: { color: "#3D1EB2", fontWeight: 800, fontSize: 12, display: "flex", alignItems: "center", gap: 3 },
-    metaRow:   { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#777", flexWrap: "wrap", marginBottom: 6 },
-    chip:      { border: "1px solid #ddd", borderRadius: 4, padding: "2px 6px", fontSize: 11, color: "#666" },
-    clubBadge: { display: "inline-flex", alignItems: "center", gap: 3, background: "#3D1EB2", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 5 },
-    unavail:   { fontSize: 12, color: "#FF6B35", fontWeight: 600, marginTop: 2 },
+    metaRow:   { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#777", flexWrap: "wrap" },
+    unlikeBtn: { position: "absolute", top: 4, right: 4, width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.9)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.15)" },
+    empty:  { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", gap: 12, color: "#bbb" },
+    emptyIcon: { fontSize: 48 },
+    emptyText: { fontSize: 15, fontWeight: 700, color: "#999" },
+    emptySubText: { fontSize: 13, color: "#bbb", textAlign: "center", lineHeight: 1.6 },
+    loading: { textAlign: "center", padding: "60px 0", color: "#aaa", fontSize: 14 },
+  };
+
+  const renderList = () => {
+    if (loading) return <div style={s.loading}>찜 목록을 불러오는 중... ❤️</div>;
+
+    if (favorites.length === 0) {
+      return (
+          <div style={s.empty}>
+            <div style={s.emptyIcon}>🤍</div>
+            <div style={s.emptyText}>아직 찜한 가게가 없어요</div>
+            <div style={s.emptySubText}>마음에 드는 가게를 찜해보세요!{"\n"}홈 화면에서 하트를 눌러보세요 💚</div>
+          </div>
+      );
+    }
+
+    return (
+        <>
+          <div style={s.count}>총 {favorites.length}개</div>
+          {favorites.map((fav) => (
+              <div key={fav.favoriteId} style={s.item} onClick={() => onSelectRestaurant({
+                id:           fav.restaurantId,
+                name:         fav.restaurantName,
+                img:          fav.imgEmoji || "🍽️",
+                bg:           fav.bgColor || "#F5F5F5",
+                rating:       fav.rating,
+                reviews:      fav.reviewCount,
+                deliveryTime: fav.deliveryTime || "30~40분",
+                minOrder:     fav.minOrder ? `${fav.minOrder.toLocaleString()}원` : "0원",
+                deliveryFee:  fav.deliveryFee === 0 ? "무료" : `${fav.deliveryFee?.toLocaleString()}원`,
+              })}>
+                <div style={s.imgWrap}>
+                  <div style={s.img(fav.bgColor)}>
+                    {fav.imgEmoji || "🍽️"}
+                  </div>
+                  <button style={s.unlikeBtn} onClick={(e) => handleUnlike(e, fav.restaurantId)}>
+                    ❤️
+                  </button>
+                </div>
+
+                <div style={s.info}>
+                  <div style={s.name}>{fav.restaurantName}</div>
+                  <div style={s.ratingRow}>
+                    <IoStar size={13} color="#FFB800" />
+                    <span>{fav.rating} ({fav.reviewCount})</span>
+                  </div>
+                  {fav.deliveryTime && (
+                      <div style={s.delivRow}>
+                        <IoBicycleOutline size={14} color="#555" />
+                        <span>{fav.deliveryTime}</span>
+                      </div>
+                  )}
+                  <div style={s.metaRow}>
+                    <span>최소주문 {fav.minOrder ? `${fav.minOrder.toLocaleString()}원` : "0원"}</span>
+                    <span style={{ color: "#ccc" }}>·</span>
+                    <span style={{ color: fav.deliveryFee === 0 ? "#29D3C4" : "#777", fontWeight: fav.deliveryFee === 0 ? 700 : 400 }}>
+                  {fav.deliveryFee === 0 ? "무료배달" : `배달비 ${fav.deliveryFee?.toLocaleString()}원`}
+                </span>
+                  </div>
+                </div>
+              </div>
+          ))}
+        </>
+    );
   };
 
   return (
@@ -49,50 +136,12 @@ const FavoritePage = ({ onSelectRestaurant }) => {
           <button style={s.tab(activeTab === "shopping")} onClick={() => setActiveTab("shopping")}>장보기·쇼핑</button>
         </div>
 
-        <div style={s.count}>총 {items.length}개</div>
-
-        {items.map((item) => (
-            <div key={item.id} style={s.item} onClick={() => onSelectRestaurant(item)}>
-              <div style={s.imgWrap}>
-                <div style={s.img(item.bg)}>
-                  {item.status && (
-                      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 10 }}>
-                        <span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{item.status}</span>
-                      </div>
-                  )}
-                  {item.emoji}
-                </div>
-                {item.discount && <div style={s.discBadge}>{item.discount}</div>}
-              </div>
-
-              <div style={s.info}>
-                <div style={s.name}>{item.name}</div>
-                <div style={s.ratingRow}>
-                  <IoStar size={13} color="#FFB800" />
-                  <span>{item.rating} ({item.reviewCount})</span>
-                  <span style={{ color: "#ccc" }}>|</span>
-                  <span style={{ fontSize: 12, color: "#777" }}>{item.topMenu}</span>
-                </div>
-                {item.time && (
-                    <div style={s.delivRow}>
-                      <IoBicycleOutline size={14} color="#555" />
-                      <span>{item.time}</span>
-                      {item.deliveryFree && (
-                          <span style={s.freeDeliv}>
-                    {/*<MdVerified size={13} color="#3D1EB2" /> 배달팁 무료*/}
-                  </span>
-                      )}
-                    </div>
-                )}
-                <div style={s.metaRow}>
-                  <span>최소주문 {item.minOrder}</span>
-                  {item.chips.map((c) => <span key={c} style={s.chip}>{c}</span>)}
-                </div>
-                {/*{item.club    && <div style={s.clubBadge}><MdVerified size={11} /> 배민클럽</div>}*/}
-                {item.unavailable && <div style={s.unavail}>지금 주소로는 배달이 어려워요</div>}
-              </div>
+        {activeTab === "delivery" ? renderList() : (
+            <div style={{ ...s.empty, paddingTop: 80 }}>
+              <div style={s.emptyIcon}>🛒</div>
+              <div style={s.emptyText}>장보기·쇼핑 찜 목록이 없어요</div>
             </div>
-        ))}
+        )}
       </div>
   );
 };

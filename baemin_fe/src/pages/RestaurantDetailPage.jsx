@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { IoArrowBack, IoShareSocialOutline, IoSearchOutline, IoBagOutline, IoHeartOutline, IoHeartSharp, IoStar, IoChevronDown, IoChevronForward, IoCheckmarkCircle } from "react-icons/io5";
-import { MdPeopleAlt, MdVerified } from "react-icons/md";
+import { MdPeopleAlt } from "react-icons/md";
 import MenuDetailModal from "../components/MenuDetailModal";
 import ReviewPage from "./ReviewPage";
 import { restaurantApi } from "../api/restaurantApi";
+import { useCart } from "../context/CartContext";
 
 const MENU_CATEGORIES = ["인기 메뉴", "우아한 분식", "바삭 튀김류", "분식 세트"];
 
@@ -17,13 +18,14 @@ const MOCK_REVIEWS = [
   { id:2, rating:5, text:"배달도 빠르고 맛있어요! 떡볶이가 특히 맛있었어요 재주문 의사 100%", bg:"#FFE4E4" },
 ];
 
-const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
+const RestaurantDetailPage = ({ restaurant, onBack, onCartClick }) => {
   const [menuItems, setMenuItems]       = useState([]);
   const [menuLoading, setMenuLoading]   = useState(true);
   const [selectedMenu, setSelectedMenu] = useState(null);
   const [activeCategory, setActiveCategory] = useState("인기 메뉴");
   const [liked, setLiked]               = useState(false);
   const [showReviews, setShowReviews]   = useState(false);
+  const { cartCount } = useCart();
 
   useEffect(() => {
     if (!restaurant?.id) { setMenuItems(MOCK_MENUS); setMenuLoading(false); return; }
@@ -44,7 +46,7 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
 
   if (showReviews) return <ReviewPage restaurant={restaurant} onBack={() => setShowReviews(false)} />;
 
-  const iconBtn = { width:36, height:36, borderRadius:"50%", background:"rgba(0,0,0,0.35)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" };
+  const iconBtn = { width:36, height:36, borderRadius:"50%", background:"rgba(0,0,0,0.35)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", position:"relative" };
   const menuTag = (color) => ({ fontSize:10, fontWeight:700, color, background:`${color}18`, padding:"2px 7px", borderRadius:4 });
 
   const s = {
@@ -53,9 +55,9 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
     heroOverlay:{ position:"absolute", inset:0, background:"linear-gradient(to bottom,rgba(0,0,0,0.25) 0%,rgba(0,0,0,0) 50%)" },
     topBar:    { position:"absolute", top:0, left:0, right:0, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 16px", zIndex:10 },
     topRight:  { display:"flex", gap:8 },
+    cartBadge: { position:"absolute", top:-6, right:-6, background:"#FF3B30", color:"#fff", fontSize:9, fontWeight:700, borderRadius:10, padding:"1px 4px", minWidth:15, textAlign:"center" },
     togetherBtn:{ position:"absolute", bottom:12, right:16, background:"#fff", border:"none", borderRadius:20, padding:"7px 14px", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:6, boxShadow:"0 2px 8px rgba(0,0,0,0.15)" },
     infoSection:{ padding:"16px 16px 0" },
-    clubBadge: { display:"inline-flex", alignItems:"center", gap:4, background:"#3D1EB2", color:"#fff", fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:6, marginBottom:10 },
     nameRow:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 },
     storeName: { fontSize:24, fontWeight:900, color:"#1A1A1A" },
     likeBtn:   { background:"none", border:"none", cursor:"pointer", padding:4, display:"flex", alignItems:"center" },
@@ -67,9 +69,6 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
     dRow:      { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
     dLabel:    { fontSize:13, color:"#666", width:70 },
     dValue:    { fontSize:13, fontWeight:700, color:"#1A1A1A" },
-    fastTxt:   { fontSize:12, color:"#29D3C4", fontWeight:700 },
-    freeBadge: { display:"flex", alignItems:"center", gap:4, fontSize:13, fontWeight:700, color:"#3D1EB2" },
-    strikethrough:{ textDecoration:"line-through", color:"#aaa", fontSize:12, fontWeight:400 },
     reviewScroll:{ display:"flex", gap:10, overflowX:"auto", padding:"0 16px 14px", scrollbarWidth:"none" },
     reviewCard:{ flexShrink:0, width:280, display:"flex", gap:10, background:"#F8F8F8", borderRadius:12, padding:12, cursor:"pointer" },
     reviewImg: { width:56, height:56, borderRadius:8, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28 },
@@ -102,8 +101,11 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
             <button style={iconBtn} onClick={onBack}><IoArrowBack size={20} color="#fff" /></button>
             <div style={s.topRight}>
               <button style={iconBtn}><IoShareSocialOutline size={18} color="#fff" /></button>
-              <button style={iconBtn}><IoSearchOutline      size={18} color="#fff" /></button>
-              <button style={iconBtn}><IoBagOutline         size={18} color="#fff" /></button>
+              <button style={iconBtn}><IoSearchOutline size={18} color="#fff" /></button>
+              <button style={{ ...iconBtn }} onClick={onCartClick}>
+                <IoBagOutline size={18} color="#fff" />
+                {cartCount > 0 && <span style={s.cartBadge}>{cartCount}</span>}
+              </button>
             </div>
           </div>
           <button style={s.togetherBtn}>
@@ -112,7 +114,6 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
         </div>
 
         <div style={s.infoSection}>
-          {/*<div style={s.clubBadge}><MdVerified size={13} /> 배민클럽 배달팁 무료</div>*/}
           <div style={s.nameRow}>
             <div style={s.storeName}>{restaurant.name}</div>
             <button style={s.likeBtn} onClick={() => setLiked(!liked)}>
@@ -138,16 +139,8 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
               <span style={s.dLabel}>알뜰배달 🛵</span>
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                 <span style={s.dValue}>36~51분</span>
-                {/*<span style={s.fastTxt}>가장 저렴해요</span>*/}
               </div>
               <IoChevronDown size={18} color="#888" />
-            </div>
-            <div style={{ paddingLeft:70, marginTop:4 }}>
-              <div style={s.freeBadge}>
-                {/*<MdVerified size={14} color="#3D1EB2" />*/}
-                {/*<span>배달팁 {restaurant.deliveryFee === "무료" ? "무료" : restaurant.deliveryFee}</span>*/}
-                {/*{restaurant.deliveryFee === "무료" && <span style={s.strikethrough}>4,100원</span>}*/}
-              </div>
             </div>
           </div>
         </div>
@@ -208,7 +201,6 @@ const RestaurantDetailPage = ({ restaurant, onBack, onAddToCart }) => {
                 menu={selectedMenu}
                 restaurant={restaurant}
                 onClose={() => setSelectedMenu(null)}
-                onAddToCart={(item, qty) => { onAddToCart(item, qty); setSelectedMenu(null); }}
             />
         )}
       </div>
