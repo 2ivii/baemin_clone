@@ -18,4 +18,7 @@ public class SignupRequest {
 
     private String email;
     private String phone;
+
+    /** "USER" | "OWNER" — 기본값 USER */
+    private String role = "USER";
 }

@@ -20,6 +20,10 @@ public class Restaurant {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    /** 사장님 유저 ID (null 이면 관리자가 직접 등록한 가게) */
+    @Column(name = "owner_id")
+    private Long ownerId;
+
     @Column(nullable = false, length = 100)
     private String name;
 

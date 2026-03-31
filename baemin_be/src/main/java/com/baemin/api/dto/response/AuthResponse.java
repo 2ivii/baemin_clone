@@ -19,6 +19,7 @@ public class AuthResponse {
         private String name;
         private String email;
         private String phone;
+        private String role;   // "USER" | "OWNER"
 
         public static UserInfo from(User user) {
             return UserInfo.builder()
@@ -27,8 +28,8 @@ public class AuthResponse {
                     .name(user.getName())
                     .email(user.getEmail())
                     .phone(user.getPhone())
+                    .role(user.getRole())
                     .build();
         }
     }
 }
-

@@ -1,10 +1,7 @@
 package com.baemin.api.exception;
 
-import com.baemin.api.exception.NotFoundException;
-import com.baemin.api.exception.UnauthorizedException;
 import com.baemin.api.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,17 +21,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ApiResponse<Void> handleUnauthorized(com.baemin.api.exception.UnauthorizedException e) {
+    public ApiResponse<Void> handleUnauthorized(UnauthorizedException e) {
         return ApiResponse.fail(e.getMessage());
     }
 
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ApiResponse<Void> handleNotFound(com.baemin.api.exception.NotFoundException e) {
+    public ApiResponse<Void> handleNotFound(NotFoundException e) {
         return ApiResponse.fail(e.getMessage());
     }
 
-    // @Valid 검증 실패
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleValidation(MethodArgumentNotValidException e) {

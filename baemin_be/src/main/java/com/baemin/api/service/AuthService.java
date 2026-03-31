@@ -28,16 +28,17 @@ public class AuthService {
     /** 회원가입 */
     @Transactional
     public AuthResponse signup(SignupRequest req) {
-        // 아이디 중복 확인
         if (userRepository.existsByLoginId(req.getLoginId())) {
             throw new BadRequestException("이미 사용 중인 아이디입니다.");
         }
 
-        // 생년월일 파싱 (1999.01.01 or 19990101 형식 허용)
         LocalDate birthDate = null;
         if (req.getBirthDate() != null && !req.getBirthDate().isBlank()) {
             birthDate = parseBirthDate(req.getBirthDate());
         }
+
+        // role 유효성: USER 또는 OWNER만 허용
+        String role = "OWNER".equalsIgnoreCase(req.getRole()) ? "OWNER" : "USER";
 
         User user = User.builder()
                 .loginId(req.getLoginId())
@@ -46,6 +47,7 @@ public class AuthService {
                 .birthDate(birthDate)
                 .email(req.getEmail())
                 .phone(req.getPhone())
+                .role(role)
                 .build();
 
         user = userRepository.save(user);
@@ -61,7 +63,7 @@ public class AuthService {
                 .orElseThrow(() -> new UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다."));
 
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            throw new com.baemin.api.exception.UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다.");
+            throw new UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다.");
         }
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getLoginId());
@@ -74,8 +76,6 @@ public class AuthService {
         return !userRepository.existsByLoginId(loginId);
     }
 
-    // ── private helpers ───────────────────────────────────────
-
     private AuthResponse buildAuthResponse(String token, User user) {
         return AuthResponse.builder()
                 .accessToken(token)
@@ -85,12 +85,11 @@ public class AuthService {
     }
 
     private LocalDate parseBirthDate(String raw) {
-        // "1999.01.01" → remove dots/hyphens → "19990101"
         String digits = raw.replaceAll("[.\\-/]", "");
         try {
             return LocalDate.parse(digits, DateTimeFormatter.ofPattern("yyyyMMdd"));
         } catch (DateTimeParseException e) {
-            throw new com.baemin.api.exception.BadRequestException("생년월일 형식이 올바르지 않습니다. 예) 1999.01.01");
+            throw new BadRequestException("생년월일 형식이 올바르지 않습니다. 예) 1999.01.01");
         }
     }
 }
