@@ -3,12 +3,13 @@ import {
     IoStorefrontOutline, IoAddCircleOutline, IoStatsChartOutline,
     IoNotificationsOutline, IoPersonOutline, IoChevronForward,
     IoToggleOutline, IoToggle, IoPencilOutline,
-    IoRestaurantOutline, IoLogOutOutline
+    IoRestaurantOutline, IoLogOutOutline, IoChatbubbleOutline
 } from "react-icons/io5";
 import { ownerApi } from "../../api/ownerApi";
 import OwnerRestaurantList from "./OwnerRestaurantList";
 import OwnerRestaurantForm from "./OwnerRestaurantForm";
 import OwnerMenuManager from "./OwnerMenuManager";
+import OwnerReviewManager from "./OwnerReviewManager";
 
 const TABS = [
     { id: "home",       label: "홈",      icon: IoStorefrontOutline },
@@ -53,6 +54,12 @@ const OwnerDashboard = ({ user, onLogout }) => {
     );
     if (subView?.type === "manage-menus") return (
         <OwnerMenuManager
+            restaurant={subView.restaurant}
+            onBack={() => setSubView(null)}
+        />
+    );
+    if (subView?.type === "manage-reviews") return (
+        <OwnerReviewManager
             restaurant={subView.restaurant}
             onBack={() => setSubView(null)}
         />
@@ -125,7 +132,7 @@ const OwnerDashboard = ({ user, onLogout }) => {
                     {[
                         { icon:"➕", bg:"#FFF0EB", label:"가게 등록",  sub:"새 가게 추가",    action: () => setSubView({ type:"add-restaurant" }) },
                         { icon:"🍽️", bg:"#EEFBFA", label:"메뉴 관리",  sub:"메뉴 추가/수정", action: () => restaurants.length > 0 ? setSubView({ type:"manage-menus", restaurant: restaurants[0] }) : setSubView({ type:"add-restaurant" }) },
-                        { icon:"📊", bg:"#F0EEFF", label:"매출 통계",  sub:"준비 중",         action: () => handleTabChange("stats") },
+                        { icon:"💬", bg:"#F0EEFF", label:"리뷰 관리",  sub:"답글 달기",       action: () => restaurants.length > 0 ? setSubView({ type:"manage-reviews", restaurant: restaurants[0] }) : setSubView({ type:"add-restaurant" }) },
                         { icon:"⚙️", bg:"#F5F5F5", label:"가게 설정",  sub:"정보 수정",       action: () => handleTabChange("restaurant") },
                     ].map((item, i) => (
                         <div key={i} style={c.quickCard} onClick={item.action}>
@@ -164,6 +171,7 @@ const OwnerDashboard = ({ user, onLogout }) => {
                     <RestaurantMiniCard key={r.id} r={r} c={c}
                                         onEdit={() => setSubView({ type:"edit-restaurant", restaurant: r })}
                                         onMenus={() => setSubView({ type:"manage-menus", restaurant: r })}
+                                        onReviews={() => setSubView({ type:"manage-reviews", restaurant: r })}
                                         onToggle={async () => { await ownerApi.toggleOpen(r.id); fetchRestaurants(); }}
                     />
                 ))}
@@ -257,7 +265,7 @@ const OwnerDashboard = ({ user, onLogout }) => {
     );
 };
 
-const RestaurantMiniCard = ({ r, c, onEdit, onMenus, onToggle }) => (
+const RestaurantMiniCard = ({ r, c, onEdit, onMenus, onReviews, onToggle }) => (
     <div style={c.storeCard}>
         <div style={c.storeTop}>
             <div style={{ ...c.storeEmoji, background: r.bgColor || "#F5F5F5" }}>
@@ -275,6 +283,9 @@ const RestaurantMiniCard = ({ r, c, onEdit, onMenus, onToggle }) => (
             </button>
             <button style={{ ...c.actionBtn, background:"#EEFBFA", color:"#29D3C4" }} onClick={onMenus}>
                 <IoRestaurantOutline size={13} /> 메뉴
+            </button>
+            <button style={{ ...c.actionBtn, background:"#F0EEFF", color:"#6C63FF" }} onClick={onReviews}>
+                <IoChatbubbleOutline size={13} /> 리뷰
             </button>
             <button style={{ ...c.actionBtn, background:r.open?"#f0f0f0":"#E8FAF8", color:r.open?"#999":"#29D3C4" }} onClick={onToggle}>
                 {r.open ? <IoToggle size={16} color="#29D3C4" /> : <IoToggleOutline size={16} />}

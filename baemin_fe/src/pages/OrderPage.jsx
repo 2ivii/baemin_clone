@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { IoReceiptOutline, IoRefreshOutline, IoCloseCircleOutline } from "react-icons/io5";
+import { IoReceiptOutline, IoRefreshOutline, IoCloseCircleOutline, IoChatbubbleOutline } from "react-icons/io5";
 import { orderApi } from "../api/orderApi";
+import { reviewApi } from "../api/reviewApi";
+import WriteReviewModal from "../components/WriteReviewModal";
 
 const STATUS_MAP = {
   PENDING:    { label: "주문접수",  color: "#FF9500" },
@@ -21,6 +23,8 @@ const OrderPage = () => {
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
+  const [reviewedOrderIds, setReviewedOrderIds] = useState(new Set());
+  const [reviewTarget, setReviewTarget] = useState(null); // { order }
 
   useEffect(() => { fetchOrders(); }, []);
 
@@ -29,20 +33,18 @@ const OrderPage = () => {
     setError(null);
     try {
       const res = await orderApi.getMyOrders(0, 20);
-      // res는 client.js 인터셉터가 data.data를 반환하므로 Page 객체
-      // Page 객체: { content: [], totalElements, totalPages, ... }
-      if (res && Array.isArray(res.content)) {
-        setOrders(res.content);
-      } else if (Array.isArray(res)) {
-        // 혹시 배열로 올 경우 대비
-        setOrders(res);
-      } else {
-        setOrders([]);
+      const orderList = res && Array.isArray(res.content) ? res.content : (Array.isArray(res) ? res : []);
+      setOrders(orderList);
+
+      // 내가 이미 리뷰 쓴 주문 ID 조회
+      try {
+        const myReviews = await reviewApi.getMy();
+        const ids = new Set((myReviews || []).map((r) => r.orderId));
+        setReviewedOrderIds(ids);
+      } catch {
+        setReviewedOrderIds(new Set());
       }
     } catch (e) {
-      // 401: 토큰 만료 → client.js에서 reload 처리
-      // 403: 권한 없음 (사장님 계정으로 주문내역 조회 시)
-      // 그 외 네트워크 에러
       if (e.message?.includes("403")) {
         setError("주문 내역을 조회할 권한이 없습니다.");
       } else {
@@ -68,6 +70,14 @@ const OrderPage = () => {
     }
   };
 
+  const handleReviewSaved = () => {
+    setReviewTarget(null);
+    fetchOrders();
+  };
+
+  const canWriteReview = (order) =>
+      !["CANCELLED", "PENDING"].includes(order.status) && !reviewedOrderIds.has(order.id);
+
   const st = {
     container:  { padding: "16px" },
     heading:    { fontSize: 20, fontWeight: 900, color: "#1A1A1A", marginBottom: 16 },
@@ -82,6 +92,8 @@ const OrderPage = () => {
     price:      { fontWeight: 700, color: "#1A1A1A" },
     btnRow:     { display: "flex", gap: 8, marginTop: 12 },
     reorderBtn: { flex: 1, padding: "10px", border: "2px solid #29D3C4", background: "none", color: "#29D3C4", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 },
+    reviewBtn:  { flex: 1, padding: "10px", border: "2px solid #FF6B35", background: "none", color: "#FF6B35", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 },
+    reviewedBadge: { flex: 1, padding: "10px", background: "#F5F5F5", color: "#aaa", borderRadius: 10, fontWeight: 700, fontSize: 13, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 },
     cancelBtn: (d) => ({ flex: 1, padding: "10px", border: "2px solid #FF3B30", background: "none", color: d ? "#ccc" : "#FF3B30", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: d ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }),
     empty:      { textAlign: "center", padding: "60px 0", color: "#bbb", fontSize: 14 },
     loading:    { textAlign: "center", padding: "60px 0", color: "#aaa", fontSize: 14 },
@@ -116,6 +128,7 @@ const OrderPage = () => {
               const itemSummary = order.items?.length > 0
                   ? `${order.items[0].menuName}${order.items.length > 1 ? ` 외 ${order.items.length - 1}개` : ""}`
                   : "주문 내역 없음";
+              const reviewed = reviewedOrderIds.has(order.id);
 
               return (
                   <div key={order.id} style={st.card}>
@@ -135,6 +148,18 @@ const OrderPage = () => {
                       <button style={st.reorderBtn}>
                         <IoRefreshOutline size={15} /> 재주문하기
                       </button>
+
+                      {/* 리뷰 버튼 */}
+                      {canWriteReview(order) ? (
+                          <button style={st.reviewBtn} onClick={() => setReviewTarget(order)}>
+                            <IoChatbubbleOutline size={15} /> 리뷰 작성
+                          </button>
+                      ) : reviewed ? (
+                          <div style={st.reviewedBadge}>
+                            <IoChatbubbleOutline size={15} /> 리뷰 완료
+                          </div>
+                      ) : null}
+
                       {order.status === "PENDING" && (
                           <button
                               style={st.cancelBtn(cancellingId === order.id)}
@@ -149,6 +174,15 @@ const OrderPage = () => {
                   </div>
               );
             })
+        )}
+
+        {/* 리뷰 작성 모달 */}
+        {reviewTarget && (
+            <WriteReviewModal
+                order={reviewTarget}
+                onClose={() => setReviewTarget(null)}
+                onSaved={handleReviewSaved}
+            />
         )}
       </div>
   );

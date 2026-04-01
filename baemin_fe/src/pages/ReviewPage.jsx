@@ -1,380 +1,108 @@
-import { useState } from "react";
-
-const reviewsData = [
-    {
-        id: 1,
-        username: "까다로운허니",
-        reviewCount: 927,
-        avgRating: 5.0,
-        rating: 5,
-        date: "지난 주",
-        deliveryType: "가게배달",
-        text: "오늘도 든든하게 먹으라고 사장님의 단골서비스가 딱~~!  배부르고 맛있는한끼했네요^^",
-        photo: null,
-        photoBg: "#FFF3CD",
-        ownerReply: "항상 찾아주셔서 감사합니다! 다음에도 맛있게 드세요 😊",
-    },
-    {
-        id: 2,
-        username: "맛집탐험가",
-        reviewCount: 234,
-        avgRating: 4.8,
-        rating: 5,
-        date: "2일 전",
-        deliveryType: "가게배달",
-        text: "양도 푸짐하고 추운날인데 먹기좋게 따뜻하게 왔네요^^ 떡도 쫄깃하니 맛있네요...",
-        photo: null,
-        photoBg: "#FFF3CD",
-        ownerReply: null,
-    },
-];
-
-const ratingDistribution = [
-    { score: 5, count: 54, pct: 90 },
-    { score: 4, count: 4, pct: 7 },
-    { score: 3, count: 1, pct: 2 },
-    { score: 2, count: 0, pct: 0 },
-    { score: 1, count: 5, pct: 8 },
-];
+import { useState, useEffect } from "react";
+import { reviewApi } from "../api/reviewApi";
 
 const ReviewPage = ({ restaurant, onBack }) => {
-    const [sortBy, setSortBy] = useState("추천순");
+    const [reviews, setReviews] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [sortBy, setSortBy]   = useState("최신순");
     const [photoOnly, setPhotoOnly] = useState(false);
-    const [expandedOwnerReply, setExpandedOwnerReply] = useState({});
 
-    const totalReviews = ratingDistribution.reduce((s, r) => s + r.count, 0);
-    const ownerReplies = reviewsData.filter((r) => r.ownerReply).length;
+    useEffect(() => {
+        if (!restaurant?.id) { setLoading(false); return; }
+        reviewApi.getByRestaurant(restaurant.id)
+            .then((data) => setReviews(data || []))
+            .catch(() => setReviews([]))
+            .finally(() => setLoading(false));
+    }, [restaurant?.id]);
+
+    const totalReviews = reviews.length;
+    const avgRating = totalReviews > 0
+        ? (reviews.reduce((s, r) => s + r.rating, 0) / totalReviews).toFixed(1)
+        : "0.0";
+    const ownerReplyCount = reviews.filter((r) => r.ownerReply).length;
+
+    // 별점 분포
+    const ratingDist = [5,4,3,2,1].map((score) => {
+        const count = reviews.filter((r) => r.rating === score).length;
+        return { score, count, pct: totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0 };
+    });
+
+    const formatDate = (iso) => {
+        if (!iso) return "";
+        const d = new Date(iso);
+        const diff = Date.now() - d.getTime();
+        const days = Math.floor(diff / 86400000);
+        if (days === 0) return "오늘";
+        if (days === 1) return "어제";
+        if (days < 7) return `${days}일 전`;
+        if (days < 14) return "지난 주";
+        return `${d.getMonth()+1}월 ${d.getDate()}일`;
+    };
 
     const s = {
         page: { background: "#fff", minHeight: "100vh", paddingBottom: 40 },
-        topBar: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "14px 16px",
-            borderBottom: "1px solid #f0f0f0",
-            position: "sticky",
-            top: 0,
-            background: "#fff",
-            zIndex: 100,
-        },
-        backBtn: {
-            background: "none",
-            border: "none",
-            fontSize: 22,
-            cursor: "pointer",
-            color: "#1A1A1A",
-            width: 36,
-            height: 36,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-        },
-        topTitle: {
-            fontSize: 17,
-            fontWeight: 800,
-            color: "#1A1A1A",
-        },
-        cartBtn: {
-            background: "none",
-            border: "none",
-            fontSize: 22,
-            cursor: "pointer",
-            color: "#1A1A1A",
-            width: 36,
-            height: 36,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-        },
-        ratingSection: {
-            display: "flex",
-            alignItems: "center",
-            padding: "20px 20px",
-            gap: 24,
-            borderBottom: "8px solid #f5f5f5",
-        },
-        ratingLeft: {
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            minWidth: 80,
-        },
-        bigRating: {
-            fontSize: 52,
-            fontWeight: 900,
-            color: "#1A1A1A",
-            lineHeight: 1,
-            marginBottom: 6,
-        },
-        bigStars: {
-            color: "#FFB800",
-            fontSize: 18,
-            letterSpacing: 2,
-        },
-        ratingBars: {
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 5,
-        },
-        barRow: {
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-        },
-        barLabel: {
-            fontSize: 12,
-            color: "#555",
-            width: 24,
-            textAlign: "right",
-            flexShrink: 0,
-        },
-        barTrack: {
-            flex: 1,
-            height: 6,
-            background: "#eee",
-            borderRadius: 3,
-            overflow: "hidden",
-        },
-        barFill: (pct, isTop) => ({
-            height: "100%",
-            width: `${pct}%`,
-            background: isTop ? "#FFB800" : "#ddd",
-            borderRadius: 3,
-        }),
-        barCount: {
-            fontSize: 12,
-            color: "#888",
-            width: 24,
-            textAlign: "left",
-            flexShrink: 0,
-        },
-        ownerNoticeSection: {
-            padding: "16px 20px",
-            borderBottom: "8px solid #f5f5f5",
-        },
-        ownerNoticeHeader: {
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 8,
-        },
-        ownerNoticeTitle: {
-            fontSize: 14,
-            fontWeight: 800,
-            color: "#1A1A1A",
-        },
-        ownerNoticeDate: {
-            fontSize: 12,
-            color: "#aaa",
-        },
-        ownerNoticeText: {
-            fontSize: 13,
-            color: "#444",
-            lineHeight: 1.6,
-        },
-        noticeBadge: {
-            display: "inline-block",
-            background: "#FFB800",
-            color: "#fff",
-            fontSize: 11,
-            fontWeight: 800,
-            padding: "2px 8px",
-            borderRadius: 4,
-            marginRight: 6,
-        },
-        reviewCountSection: {
-            padding: "14px 20px 10px",
-            borderBottom: "1px solid #f0f0f0",
-        },
-        reviewCountRow: {
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 4,
-        },
-        reviewCountText: {
-            fontSize: 15,
-            fontWeight: 900,
-            color: "#1A1A1A",
-        },
-        reviewPolicyBtn: {
-            fontSize: 12,
-            color: "#888",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-        },
-        ownerReplyCount: {
-            fontSize: 13,
-            color: "#555",
-        },
-        verifiedBadge: {
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            background: "#E6FAF8",
-            color: "#29D3C4",
-            fontSize: 11,
-            fontWeight: 700,
-            padding: "4px 10px",
-            borderRadius: 20,
-            marginTop: 8,
-        },
-        controlRow: {
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 16px 10px",
-            borderBottom: "1px solid #f0f0f0",
-        },
-        sortBtn: {
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            padding: "7px 14px",
-            borderRadius: 20,
-            border: "1px solid #ddd",
-            background: "#fff",
-            fontSize: 13,
-            fontWeight: 700,
-            color: "#1A1A1A",
-            cursor: "pointer",
-        },
-        photoBtn: (active) => ({
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            padding: "7px 14px",
-            borderRadius: 20,
-            border: "none",
-            background: active ? "#1A1A1A" : "#1A1A1A",
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-        }),
-        reviewList: { padding: "0" },
-        reviewItem: {
-            padding: "16px 20px",
-            borderBottom: "1px solid #f5f5f5",
-        },
-        reviewHeader: {
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 8,
-        },
-        avatar: {
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: "#f0f0f0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 18,
-            flexShrink: 0,
-        },
-        userInfo: { flex: 1 },
-        usernameRow: {
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-        },
-        username: {
-            fontSize: 14,
-            fontWeight: 800,
-            color: "#1A1A1A",
-        },
-        userArrow: {
-            fontSize: 12,
-            color: "#aaa",
-        },
-        userMeta: {
-            fontSize: 11,
-            color: "#aaa",
-            marginTop: 1,
-        },
-        reportBtn: {
-            fontSize: 11,
-            color: "#aaa",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-        },
-        starRow: {
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 8,
-        },
-        stars: {
-            color: "#FFB800",
-            fontSize: 13,
-            letterSpacing: 1,
-        },
-        reviewMeta: {
-            fontSize: 12,
-            color: "#aaa",
-        },
-        reviewText: {
-            fontSize: 14,
-            color: "#333",
-            lineHeight: 1.6,
-            marginBottom: 10,
-        },
-        reviewPhoto: (bg) => ({
-            width: 80,
-            height: 80,
-            borderRadius: 8,
-            background: bg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 36,
-            marginBottom: 10,
-        }),
-        ownerReplyBox: {
-            background: "#f8f8f8",
-            borderRadius: 8,
-            padding: "12px 14px",
-            marginTop: 4,
-        },
-        ownerReplyLabel: {
-            fontSize: 12,
-            fontWeight: 800,
-            color: "#555",
-            marginBottom: 4,
-        },
-        ownerReplyText: {
-            fontSize: 13,
-            color: "#555",
-            lineHeight: 1.5,
-        },
+        topBar: { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 16px", borderBottom:"1px solid #f0f0f0", position:"sticky", top:0, background:"#fff", zIndex:100 },
+        backBtn: { background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#1A1A1A", width:36, height:36, display:"flex", alignItems:"center", justifyContent:"center" },
+        topTitle: { fontSize:17, fontWeight:800, color:"#1A1A1A" },
+        cartBtn: { background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#1A1A1A", width:36, height:36, display:"flex", alignItems:"center", justifyContent:"center" },
+        ratingSection: { display:"flex", alignItems:"center", padding:"20px", gap:24, borderBottom:"8px solid #f5f5f5" },
+        ratingLeft: { display:"flex", flexDirection:"column", alignItems:"center", minWidth:80 },
+        bigRating: { fontSize:52, fontWeight:900, color:"#1A1A1A", lineHeight:1, marginBottom:6 },
+        bigStars: { color:"#FFB800", fontSize:18, letterSpacing:2 },
+        ratingBars: { flex:1, display:"flex", flexDirection:"column", gap:5 },
+        barRow: { display:"flex", alignItems:"center", gap:8 },
+        barLabel: { fontSize:12, color:"#555", width:24, textAlign:"right", flexShrink:0 },
+        barTrack: { flex:1, height:6, background:"#eee", borderRadius:3, overflow:"hidden" },
+        barFill: (pct, isTop) => ({ height:"100%", width:`${pct}%`, background: isTop ? "#FFB800" : "#ddd", borderRadius:3 }),
+        barCount: { fontSize:12, color:"#888", width:24, textAlign:"left", flexShrink:0 },
+        reviewCountSection: { padding:"14px 20px 10px", borderBottom:"1px solid #f0f0f0" },
+        reviewCountRow: { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 },
+        reviewCountText: { fontSize:15, fontWeight:900, color:"#1A1A1A" },
+        ownerReplyCount: { fontSize:13, color:"#555" },
+        controlRow: { display:"flex", alignItems:"center", gap:8, padding:"10px 16px", borderBottom:"1px solid #f0f0f0" },
+        sortBtn: { display:"flex", alignItems:"center", gap:4, padding:"7px 14px", borderRadius:20, border:"1px solid #ddd", background:"#fff", fontSize:13, fontWeight:700, color:"#1A1A1A", cursor:"pointer" },
+        photoBtn: (active) => ({ display:"flex", alignItems:"center", gap:4, padding:"7px 14px", borderRadius:20, border:"none", background:"#1A1A1A", color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", opacity: active ? 1 : 0.5 }),
+        reviewItem: { padding:"16px 20px", borderBottom:"1px solid #f5f5f5" },
+        reviewHeader: { display:"flex", alignItems:"center", gap:10, marginBottom:8 },
+        avatar: { width:36, height:36, borderRadius:"50%", background:"#f0f0f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 },
+        userInfo: { flex:1 },
+        usernameRow: { display:"flex", alignItems:"center", gap:6 },
+        username: { fontSize:14, fontWeight:800, color:"#1A1A1A" },
+        editedBadge: { fontSize:10, color:"#29D3C4", fontWeight:700, background:"#E6FAF8", padding:"1px 6px", borderRadius:4 },
+        userMeta: { fontSize:11, color:"#aaa", marginTop:1 },
+        starRow: { display:"flex", alignItems:"center", gap:6, marginBottom:8 },
+        stars: { color:"#FFB800", fontSize:13, letterSpacing:1 },
+        reviewMeta: { fontSize:12, color:"#aaa" },
+        reviewText: { fontSize:14, color:"#333", lineHeight:1.6, marginBottom:10 },
+        ownerReplyBox: { background:"#f8f8f8", borderRadius:8, padding:"12px 14px", marginTop:4 },
+        ownerReplyLabel: { fontSize:12, fontWeight:800, color:"#555", marginBottom:4, display:"flex", alignItems:"center", gap:4 },
+        ownerReplyLabelBadge: { background:"#FF6B35", color:"#fff", fontSize:10, fontWeight:700, padding:"2px 6px", borderRadius:4 },
+        ownerReplyText: { fontSize:13, color:"#555", lineHeight:1.5 },
+        noReview: { textAlign:"center", padding:"60px 0", color:"#bbb" },
+        loading:  { textAlign:"center", padding:"40px 0", color:"#aaa", fontSize:14 },
     };
+
+    const AVATARS = ["🐱","🐶","🐼","🦊","🐨","🐸","🐯","🦁","🐙","🐧"];
+    const getAvatar = (name) => AVATARS[(name?.charCodeAt(0) ?? 0) % AVATARS.length];
 
     return (
         <div style={s.page}>
-            {/* Top Bar */}
             <div style={s.topBar}>
                 <button style={s.backBtn} onClick={onBack}>←</button>
                 <span style={s.topTitle}>리뷰</span>
                 <button style={s.cartBtn}>🛒</button>
             </div>
 
-            {/* Rating Summary */}
+            {/* 별점 요약 */}
             <div style={s.ratingSection}>
                 <div style={s.ratingLeft}>
-                    <div style={s.bigRating}>4.9</div>
-                    <div style={s.bigStars}>★★★★★</div>
+                    <div style={s.bigRating}>{avgRating}</div>
+                    <div style={s.bigStars}>
+                        {"★".repeat(Math.round(Number(avgRating)))}{"☆".repeat(5 - Math.round(Number(avgRating)))}
+                    </div>
                 </div>
                 <div style={s.ratingBars}>
-                    {ratingDistribution.map((r) => (
+                    {ratingDist.map((r) => (
                         <div key={r.score} style={s.barRow}>
                             <span style={s.barLabel}>{r.score}점</span>
                             <div style={s.barTrack}>
@@ -386,84 +114,69 @@ const ReviewPage = ({ restaurant, onBack }) => {
                 </div>
             </div>
 
-            {/* Owner Notice */}
-            <div style={s.ownerNoticeSection}>
-                <div style={s.ownerNoticeHeader}>
-                    <span style={s.ownerNoticeTitle}>사장님 공지</span>
-                    <span style={s.ownerNoticeDate}>2025년 07월 15일</span>
-                </div>
-                <div style={s.ownerNoticeText}>
-                    <span style={s.noticeBadge}>공지</span>
-                    사장님 공지입니다.
-                </div>
-            </div>
-
-            {/* Review Count */}
+            {/* 리뷰 수 */}
             <div style={s.reviewCountSection}>
                 <div style={s.reviewCountRow}>
                     <span style={s.reviewCountText}>최근 리뷰 {totalReviews}개</span>
-                    <button style={s.reviewPolicyBtn}>리뷰 노출 정책 ›</button>
+                    <button style={{ fontSize:12, color:"#888", background:"none", border:"none", cursor:"pointer" }}>리뷰 노출 정책 ›</button>
                 </div>
-                <div style={s.ownerReplyCount}>사장님댓글 {ownerReplies}개</div>
-                {/*<div style={s.verifiedBadge}>*/}
-                {/*    /!*<span>✓</span> 모든 리뷰는 검토 후 보여드려요*!/*/}
-                {/*</div>*/}
+                <div style={s.ownerReplyCount}>사장님댓글 {ownerReplyCount}개</div>
             </div>
 
-            {/* Controls */}
+            {/* 정렬 / 필터 */}
             <div style={s.controlRow}>
-                <button style={s.sortBtn}>
-                    <span>↕</span> {sortBy} ⌄
-                </button>
+                <button style={s.sortBtn}>↕ {sortBy} ⌄</button>
                 <button style={s.photoBtn(photoOnly)} onClick={() => setPhotoOnly(!photoOnly)}>
                     📷 사진 리뷰만 보기
                 </button>
             </div>
 
-            {/* Review List */}
-            <div style={s.reviewList}>
-                {reviewsData.map((review) => (
+            {/* 리뷰 목록 */}
+            {loading ? (
+                <div style={s.loading}>리뷰를 불러오는 중...</div>
+            ) : reviews.length === 0 ? (
+                <div style={s.noReview}>
+                    <div style={{ fontSize:48 }}>💬</div>
+                    <div style={{ fontSize:15, fontWeight:700, color:"#999", marginTop:8 }}>아직 리뷰가 없어요</div>
+                    <div style={{ fontSize:13, color:"#bbb", marginTop:4 }}>첫 번째 리뷰를 남겨보세요!</div>
+                </div>
+            ) : (
+                reviews.map((review) => (
                     <div key={review.id} style={s.reviewItem}>
                         <div style={s.reviewHeader}>
-                            <div style={s.avatar}>🐱</div>
+                            <div style={s.avatar}>{getAvatar(review.userName)}</div>
                             <div style={s.userInfo}>
                                 <div style={s.usernameRow}>
-                                    <span style={s.username}>{review.username}</span>
-                                    <span style={s.userArrow}>›</span>
-                                </div>
-                                <div style={s.userMeta}>
-                                    리뷰 {review.reviewCount} · 평균별점 {review.avgRating.toFixed(1)}
+                                    <span style={s.username}>{review.userName}</span>
+                                    {review.edited && <span style={s.editedBadge}>수정됨</span>}
                                 </div>
                             </div>
-                            <button style={s.reportBtn}>신고하기</button>
+                            <button style={{ fontSize:11, color:"#aaa", background:"none", border:"none", cursor:"pointer" }}>신고하기</button>
                         </div>
 
                         <div style={s.starRow}>
-                            <span style={s.stars}>{"★".repeat(review.rating)}</span>
-                            <span style={s.reviewMeta}>{review.date}, {review.deliveryType}</span>
+                            <span style={s.stars}>
+                                {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                            </span>
+                            <span style={s.reviewMeta}>{formatDate(review.createdAt)}</span>
                         </div>
 
-                        {review.photo ? (
-                            <img
-                                src={review.photo}
-                                alt="리뷰 사진"
-                                style={{ width: 80, height: 80, borderRadius: 8, objectFit: "cover", marginBottom: 10 }}
-                            />
-                        ) : (
-                            <div style={s.reviewPhoto(review.photoBg)}>{review.photoEmoji}</div>
+                        {review.content && (
+                            <div style={s.reviewText}>{review.content}</div>
                         )}
-
-                        <div style={s.reviewText}>{review.text}</div>
 
                         {review.ownerReply && (
                             <div style={s.ownerReplyBox}>
-                                <div style={s.ownerReplyLabel}>사장님 댓글</div>
+                                <div style={s.ownerReplyLabel}>
+                                    <span style={s.ownerReplyLabelBadge}>사장님</span>
+                                    댓글
+                                </div>
                                 <div style={s.ownerReplyText}>{review.ownerReply}</div>
                             </div>
                         )}
                     </div>
-                ))}
-            </div>
+                ))
+            )}
         </div>
     );
 };
