@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { IoReceiptOutline, IoRefreshOutline, IoCloseCircleOutline, IoChatbubbleOutline } from "react-icons/io5";
+import { IoReceiptOutline, IoRefreshOutline, IoCloseCircleOutline, IoChatbubbleOutline, IoCheckmarkCircle } from "react-icons/io5";
 import { orderApi } from "../api/orderApi";
 import { reviewApi } from "../api/reviewApi";
 import WriteReviewModal from "../components/WriteReviewModal";
@@ -24,7 +24,7 @@ const OrderPage = () => {
   const [error, setError]               = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
   const [reviewedOrderIds, setReviewedOrderIds] = useState(new Set());
-  const [reviewTarget, setReviewTarget] = useState(null); // { order }
+  const [reviewTarget, setReviewTarget] = useState(null);
 
   useEffect(() => { fetchOrders(); }, []);
 
@@ -36,7 +36,6 @@ const OrderPage = () => {
       const orderList = res && Array.isArray(res.content) ? res.content : (Array.isArray(res) ? res : []);
       setOrders(orderList);
 
-      // 내가 이미 리뷰 쓴 주문 ID 조회
       try {
         const myReviews = await reviewApi.getMy();
         const ids = new Set((myReviews || []).map((r) => r.orderId));
@@ -75,8 +74,9 @@ const OrderPage = () => {
     fetchOrders();
   };
 
+  // CANCELLED가 아닌 모든 주문에 리뷰 버튼 노출 (백엔드가 상태별로 검증)
   const canWriteReview = (order) =>
-      !["CANCELLED", "PENDING"].includes(order.status) && !reviewedOrderIds.has(order.id);
+      order.status !== "CANCELLED" && !reviewedOrderIds.has(order.id);
 
   const st = {
     container:  { padding: "16px" },
@@ -90,6 +90,24 @@ const OrderPage = () => {
     items:      { fontSize: 13, color: "#666", marginBottom: 6 },
     meta:       { display: "flex", justifyContent: "space-between", fontSize: 12, color: "#999" },
     price:      { fontWeight: 700, color: "#1A1A1A" },
+
+    // 리뷰 배너 (눈에 잘 띄는 CTA)
+    reviewBanner: {
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      background: "linear-gradient(135deg, #FFF3EE, #FFE8D8)",
+      border: "1.5px solid #FFCBA8", borderRadius: 10,
+      padding: "10px 14px", margin: "10px 0 0",
+      cursor: "pointer",
+    },
+    reviewBannerLeft: { display: "flex", alignItems: "center", gap: 8 },
+    reviewBannerIcon: {
+      width: 32, height: 32, borderRadius: "50%",
+      background: "#FF6B35", display: "flex", alignItems: "center", justifyContent: "center",
+    },
+    reviewBannerText: { fontSize: 13, fontWeight: 800, color: "#D4521A" },
+    reviewBannerSub:  { fontSize: 11, color: "#E8894A", marginTop: 1 },
+    reviewBannerArrow:{ fontSize: 16, color: "#FF6B35", fontWeight: 700 },
+
     btnRow:     { display: "flex", gap: 8, marginTop: 12 },
     reorderBtn: { flex: 1, padding: "10px", border: "2px solid #29D3C4", background: "none", color: "#29D3C4", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 },
     reviewBtn:  { flex: 1, padding: "10px", border: "2px solid #FF6B35", background: "none", color: "#FF6B35", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 },
@@ -129,6 +147,7 @@ const OrderPage = () => {
                   ? `${order.items[0].menuName}${order.items.length > 1 ? ` 외 ${order.items.length - 1}개` : ""}`
                   : "주문 내역 없음";
               const reviewed = reviewedOrderIds.has(order.id);
+              const showReviewCTA = canWriteReview(order);
 
               return (
                   <div key={order.id} style={st.card}>
@@ -139,24 +158,42 @@ const OrderPage = () => {
                       </div>
                       <span style={st.badge(color)}>{label}</span>
                     </div>
+
                     <div style={st.items}>{itemSummary}</div>
                     <div style={st.meta}>
                       <span>{formatDate(order.orderedAt)}</span>
                       <span style={st.price}>{order.finalPrice?.toLocaleString()}원</span>
                     </div>
+
+                    {/* 리뷰 CTA 배너 — 리뷰 작성 가능할 때만 노출 */}
+                    {showReviewCTA && (
+                        <div style={st.reviewBanner} onClick={() => setReviewTarget(order)}>
+                          <div style={st.reviewBannerLeft}>
+                            <div style={st.reviewBannerIcon}>
+                              <IoChatbubbleOutline size={16} color="#fff" />
+                            </div>
+                            <div>
+                              <div style={st.reviewBannerText}>리뷰를 작성해주세요!</div>
+                              <div style={st.reviewBannerSub}>소중한 후기가 다른 분들께 도움이 돼요</div>
+                            </div>
+                          </div>
+                          <span style={st.reviewBannerArrow}>›</span>
+                        </div>
+                    )}
+
                     <div style={st.btnRow}>
                       <button style={st.reorderBtn}>
                         <IoRefreshOutline size={15} /> 재주문하기
                       </button>
 
-                      {/* 리뷰 버튼 */}
-                      {canWriteReview(order) ? (
+                      {/* 리뷰 버튼 영역 */}
+                      {showReviewCTA ? (
                           <button style={st.reviewBtn} onClick={() => setReviewTarget(order)}>
-                            <IoChatbubbleOutline size={15} /> 리뷰 작성
+                            <IoChatbubbleOutline size={15} /> 리뷰 달기
                           </button>
                       ) : reviewed ? (
                           <div style={st.reviewedBadge}>
-                            <IoChatbubbleOutline size={15} /> 리뷰 완료
+                            <IoCheckmarkCircle size={15} color="#aaa" /> 리뷰 완료
                           </div>
                       ) : null}
 
